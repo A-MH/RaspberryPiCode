@@ -8,26 +8,26 @@
 import RPi.GPIO as GPIO
 import time
 
-EN11 = 32    # motor controller 1
-EN12 = 33   # motor controller 2
-EN21 = 24    # motor controller 1
-EN22 = 26   # motor controller 2
+en_front = 32    # EN front wheel
+en_back = 33   # EN back wheel
+en_left = 24    # EN left wheel
+en_right = 26   # EN right wheel
 
 IN11 = 29
 IN12 = 31
 
 def setup():
 
-    global p11
-    global p12
-    global p21
-    global p22
+    global p_front # front wheel
+    global p_back # back wheel
+    global p_left # left wheel
+    global p_right # right wheel
     GPIO.setmode(GPIO.BOARD)
 
-    GPIO.setup(EN11, GPIO.OUT)
-    GPIO.setup(EN12, GPIO.OUT)
-    GPIO.setup(EN21, GPIO.OUT)
-    GPIO.setup(EN22, GPIO.OUT)
+    GPIO.setup(en_front, GPIO.OUT)
+    GPIO.setup(en_back, GPIO.OUT)
+    GPIO.setup(en_left, GPIO.OUT)
+    GPIO.setup(en_right, GPIO.OUT)
 
     GPIO.setup(IN11, GPIO.OUT)
     GPIO.output(IN11, GPIO.LOW)
@@ -35,28 +35,28 @@ def setup():
     GPIO.setup(IN12, GPIO.OUT)
     GPIO.output(IN12, GPIO.HIGH)
 
-    p11 = GPIO.PWM(EN11, 500)      # set PWM Frequence to 500Hz
-    p11.start(100)
-    p12 = GPIO.PWM(EN12, 500)      # set PWM Frequence to 500Hz
-    p12.start(100)
+    p_front = GPIO.PWM(en_front, 500)      # set PWM Frequence to 500Hz
+    p_front.start(100)
+    p_back = GPIO.PWM(en_back, 500)      # set PWM Frequence to 500Hz
+    p_back.start(100)
 
-    p21 = GPIO.PWM(EN21, 500)      # set PWM Frequence to 500Hz
-    p21.start(0)
-    p22 = GPIO.PWM(EN22, 500)      # set PWM Frequence to 500Hz
-    p22.start(0)                # set initial Duty Cycle to 0
+    p_left = GPIO.PWM(en_left, 500)      # set PWM Frequence to 500Hz
+    p_left.start(0)
+    p_right = GPIO.PWM(en_right, 500)      # set PWM Frequence to 500Hz
+    p_right.start(0)                # set initial Duty Cycle to 0
 
 def loop():
     while True:
-        p11.ChangeDutyCycle(100)     # set dc value as the duty cycle
-        p12.ChangeDutyCycle(100)     # set dc value as the duty cycle
-        p21.ChangeDutyCycle(0)     # set dc value as the duty cycle
-        p22.ChangeDutyCycle(0)     # set dc value as the duty cycle
+        p_front.ChangeDutyCycle(0)     # set dc value as the duty cycle
+        p_back.ChangeDutyCycle(0)     # set dc value as the duty cycle
+        p_left.ChangeDutyCycle(100)     # set dc value as the duty cycle
+        p_right.ChangeDutyCycle(100)     # set dc value as the duty cycle
 
 def destroy():
-    p11.stop() # stop PWM
-    p12.stop() # stop PWM
-    p21.stop() # stop PWM
-    p22.stop() # stop PWM
+    p_front.stop() # stop PWM
+    p_back.stop() # stop PWM
+    p_left.stop() # stop PWM
+    p_right.stop() # stop PWM
     GPIO.cleanup() # Release all GPIO
 
 if __name__ == '__main__':     # Program entrance
