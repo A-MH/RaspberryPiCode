@@ -23,17 +23,19 @@ channels = np.array([chan0, chan1, chan2, chan3])
 #chan = AnalogIn(ads, ADS.P0, ADS.P1)
 
 def load_calibration():
+    # to recalibrate, just delete the "LFU value limits.npy" file
     # first column is low limit, second is high
+    # first row is top left, second is top right, third is bottom left, fourth is bottom right
     global calib_vals
-    global file
     calib_vals = np.array([[-1,-1], [-1,-1], [-1,-1], [-1,-1]])
+    
+    global file
     try:
-        file = open(sys.path[0]+"/LFU value limits", 'rb')
+        file = open(sys.path[0]+"/LFU value limits.npy", 'rb')
     except:
         calibrate()
     else:
         calib_vals = np.load(file)
-    print(calib_vals)
 
 # def load_calibration():
 # try:
@@ -47,7 +49,7 @@ def load_calibration():
 # file.close()
 
 def calibrate():
-    file = open(sys.path[0]+"/LFU value limits", 'wb')
+    file = open(sys.path[0]+"/LFU value limits.npy", 'wb')
     print_values()
     user_input = input("place LFU on black, press any key to continue...")
     for i in range(4):
@@ -58,6 +60,10 @@ def calibrate():
     print_values()
     np.save(file, calib_vals)
     file.close()
+
+def print_channel_values():
+    print(f"{channels[0].value} {channels[1].value} {channels[2].value} {channels[3].value}")
+    
 
 def print_values():
     print("black values:\t{:>5}\t{:>5}\t{:>5}\t{:>5}".format(calib_vals[0,0], calib_vals[1,0], calib_vals[2,0], calib_vals[3,0]))
@@ -70,11 +76,11 @@ def get_deviation():
     deviation = (values - calib_vals[:,1]) / (calib_vals[:,0] - calib_vals[:,1])
     return deviation
 
-
 if __name__ == '__main__':     # Program entrance
     load_calibration()
     while True:
-        get_deviation()
+        print_channel_values()
+        print(get_deviation())
         time.sleep(0.01)
 else:
     load_calibration()
