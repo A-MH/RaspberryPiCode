@@ -14,7 +14,7 @@ import asyncio
 from simple_pid import PID
 import matplotlib.pyplot as plt
 
-pwm_value = 100
+pwm_value = 40
 
 wd = 21.5 # wheel distance (distance between two opposite wheels
 
@@ -31,14 +31,18 @@ def on_press(key):
         GPIO.output(in_values['arm'][0], GPIO.LOW)
         GPIO.output(in_values['arm'][1], GPIO.HIGH)
     elif (key == keyboard.Key.left):
-        print("2")
+        print("2" )
         GPIO.output(in_values['e-magnet'][0], GPIO.HIGH)
-        GPIO.output(in_values['e-magnet'][1], GPIO.LOW)
-    else:
+    elif key == keyboard.Key.right:
         GPIO.output(in_values['arm'][0], GPIO.LOW)
         GPIO.output(in_values['arm'][1], GPIO.LOW)
         GPIO.output(in_values['e-magnet'][0], GPIO.LOW)
         GPIO.output(in_values['e-magnet'][1], GPIO.LOW)
+    elif (key==keyboard.Key.space):
+        for key, value in in_values.items():
+            GPIO.output(value[0], GPIO.LOW)
+            GPIO.output(value[1], GPIO.LOW)
+    else:
         destroy()
 
 def destroy():
@@ -62,6 +66,6 @@ def setup():
         GPIO.output(value[0], GPIO.LOW)
         GPIO.setup(value[1], GPIO.OUT)
         GPIO.output(value[1], GPIO.LOW)
-        
+         
 if __name__ == '__main__':     # Program entrance
     setup()

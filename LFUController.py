@@ -80,7 +80,7 @@ if __name__ == '__main__':     # Program entrance
     load_calibration()
     while True:
         print_channel_values()
-        print(get_deviation())
+#         print(get_deviation())
         time.sleep(0.01)
 else:
     load_calibration()
