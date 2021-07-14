@@ -1,3 +1,5 @@
+# to calibrate the sensors, delete the calibration values file called "LFU value limits.npy"
+
 import time
 import sys
 import board
