@@ -10,8 +10,6 @@ import RPi.GPIO as GPIO
 import time
 from pynput import keyboard
 import LFUController as LFU
-import asyncio
-from simple_pid import PID
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -23,7 +21,7 @@ is_decelerating = False
 pwm = 0
 
 wd = 21.5 # wheel distance (distance between two opposite wheels
-   
+
 default_pwm = 15
 pwm_acceleration = 1000 * default_pwm
 pwm_deceleration = 2 * default_pwm
@@ -36,7 +34,7 @@ in_values = {"front": [16, 12], "back": [1, 7], "left": [24, 23], "right": [18, 
 
 pwm_multipliers = {"front": 1, "back": 1, "left": 1, "right": 1}
 
-end_offsets = [-4, -2, -4, -2]
+end_offsets = [-4, -3, -3, -2]
 
 deviations = np.zeros([0,4])
 
@@ -49,9 +47,9 @@ def on_press(key):
     if (key == keyboard.Key.up):
         go_to_dest("left", "right", 0, 1, travel_distance, end_offsets[0], end_offsets[1])
     elif(key == keyboard.Key.down):
-        go_to_dest("right", "left", 2, 3, travel_distance, end_offsets[2], end_offsets[3])
+        go_to_dest("right", "left", 3, 2, travel_distance, end_offsets[3], end_offsets[2])
     elif(key == keyboard.Key.left):
-        go_to_dest("back", "front", 0, 2, travel_distance, end_offsets[0], end_offsets[2])
+        go_to_dest("back", "front", 2, 0, travel_distance, end_offsets[2], end_offsets[0])
     elif(key == keyboard.Key.right):
         go_to_dest("front", "back", 1, 3, travel_distance, end_offsets[1], end_offsets[3])
     elif key == keyboard.Key.ctrl:
@@ -72,8 +70,8 @@ def setup():
     global pwm_pins
     global pwm_values
     for key, value in in_values.items():
-        GPIO.setup(en_values[key], GPIO.OUT) 
-        pwm_pins[key] = GPIO.PWM(en_values[key], 200) 
+        GPIO.setup(en_values[key], GPIO.OUT)
+        pwm_pins[key] = GPIO.PWM(en_values[key], 200)
         pwm_pins[key].start(0)
         GPIO.setup(value[0], GPIO.OUT)
         GPIO.output(value[0], GPIO.LOW)
@@ -86,7 +84,7 @@ def go_to_dest(rel_left, rel_right, sensor_left, sensor_right, travel_distance, 
     global pwm_multipliers
     global pwm
     global should_stop
-    
+
     junction_registered = False
     deviation = []
     distance_travelled = 0
@@ -96,7 +94,7 @@ def go_to_dest(rel_left, rel_right, sensor_left, sensor_right, travel_distance, 
     is_accelerating = True
     is_decelerating = False
     should_stop = False
-    
+
     GPIO.output(in_values["left"][0], GPIO.LOW)
     GPIO.output(in_values["left"][1], GPIO.LOW)
     GPIO.output(in_values["right"][0], GPIO.LOW)
@@ -105,10 +103,10 @@ def go_to_dest(rel_left, rel_right, sensor_left, sensor_right, travel_distance, 
     GPIO.output(in_values["front"][1], GPIO.LOW)
     GPIO.output(in_values["back"][0], GPIO.LOW)
     GPIO.output(in_values["back"][1], GPIO.LOW)
-    
+
     GPIO.output(in_values[rel_left][0], GPIO.HIGH)
     GPIO.output(in_values[rel_right][1], GPIO.HIGH)
-    
+
     while not destination_reached:
 #         print("entered loop")
         deviation = LFU.get_deviation()
@@ -137,7 +135,7 @@ def go_to_dest(rel_left, rel_right, sensor_left, sensor_right, travel_distance, 
                 is_decelerating = True
                 distance_travelled = 0
                 should_stop = False
-        
+
         if is_accelerating:
 #             print("is accelerating")
             pwm = 80
@@ -168,23 +166,25 @@ def go_to_dest(rel_left, rel_right, sensor_left, sensor_right, travel_distance, 
 
 def destroy():
     global deviations
-    
+
     for key in pwm_pins:
         pwm_pins[key].stop()
     GPIO.cleanup() # Release all GPIO
-    
+
     x_axis = range(len(deviations))
     plt.grid(axis='x', markevery=1)
-    plt.plot(x_axis, deviations[:, 0], 'b', x_axis, deviations[:, 1], 'r')
+    plt.plot(x_axis, deviations[:, 0], 'b', x_axis, deviations[:, 1], 'r', deviations[:, 2], 'k', x_axis, deviations[:, 1], 'y')
 #     plt.plot(x_axis, diff_array, 'k', x_axis, avg_diff_array, 'y', x_axis, pid_output_array, 'c', x_axis, pid_p_array, 'r', x_axis, pid_i_array, 'g', x_axis, pid_d_array, 'b')
     plt.show()
 #     for i in range(len(diff_array)):
 #         print(f"{i}, diff: {diff_array[i]}, pid output: {pid_output_array[i]}, pid components: {pid_p_array[i]}")
 
-if __name__ == '__main__':     # Program entrance
-    setup()
-    # Collect events in a non-blocking fashion:
-    listener = keyboard.Listener(
+setup()
+# Collect events in a non-blocking fashion:
+try:
+    with keyboard.Listener(
         on_press=on_press,
-        on_release=on_release)
-    listener.start()
+        on_release=on_release) as listener:
+        listener.join()
+except KeyboardInterrupt:
+    destroy()
