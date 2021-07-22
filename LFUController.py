@@ -12,7 +12,7 @@ from adafruit_ads1x15.analog_in import AnalogIn
 i2c = busio.I2C(board.SCL, board.SDA)
 
 # Create the ADC object using the I2C bus
-ads = ADS.ADS1015(i2c)
+ads = ADS.ADS1015(i2c, data_rate = 3300)
 
 # Create single-ended input on channel 0
 chan0 = AnalogIn(ads, ADS.P0)
@@ -75,8 +75,7 @@ def get_deviation():
     values = np.zeros(4)
     for i in range(4):
         values[i] = channels[i].value
-    deviation = (values - calib_vals[:,1]) / (calib_vals[:,0] - calib_vals[:,1])
-    return deviation
+    return values
 
 if __name__ == '__main__':     # Program entrance
     load_calibration()

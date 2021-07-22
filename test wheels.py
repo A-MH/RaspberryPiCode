@@ -7,8 +7,8 @@
 ########################################################################
 import math
 import RPi.GPIO as GPIO
-import time
-from pynput import keyboard
+from datetime import datetime
+from pynput  import keyboard
 import LFUController as LFU
 import asyncio
 from simple_pid import PID
@@ -24,7 +24,7 @@ pwm = 0
 
 wd = 21.5 # wheel distance (distance between two opposite wheels
    
-default_pwm = 100
+default_pwm = 15 
 pwm_acceleration = 1000 * default_pwm
 pwm_deceleration = 2 * default_pwm
 
@@ -58,8 +58,17 @@ def on_press(key):
         go_to_dest("right")
     elif key == keyboard.Key.ctrl:
         ctrl_held = True
+    elif(key == keyboard.Key.space):
+        GPIO.output(in_values["left"][0], GPIO.LOW)
+        GPIO.output(in_values["left"][1], GPIO.LOW)
+        GPIO.output(in_values["right"][0], GPIO.LOW)
+        GPIO.output(in_values["right"][1], GPIO.LOW)
+        GPIO.output(in_values["front"][0], GPIO.LOW)
+        GPIO.output(in_values["front"][1], GPIO.LOW)
+        GPIO.output(in_values["back"][0], GPIO.LOW)
+        GPIO.output(in_values["back"][1], GPIO.LOW)
     elif key.char == "c" and ctrl_held:
-        destroy()
+        destroy() 
 
 def on_release(key):
     global ctrl
@@ -72,14 +81,15 @@ def setup():
     global pwm_values
     for key, value in in_values.items():
         GPIO.setup(en_values[key], GPIO.OUT) 
-        pwm_pins[key] = GPIO.PWM(en_values[key], 200) 
-        pwm_pins[key].start(100 * pwm_multipliers[key])
+        pwm_pins[key] = GPIO.PWM(en_values[key], 500) 
+        pwm_pins[key].start(default_pwm * pwm_multipliers[key])
         GPIO.setup(value[0], GPIO.OUT)
         GPIO.output(value[0], GPIO.LOW)
         GPIO.setup(value[1], GPIO.OUT)
         GPIO.output(value[1], GPIO.LOW)
 
 def go_to_dest(direction):
+    print(f"start time {datetime.now().strftime('%S.%f')[:-4]}")
     GPIO.output(in_values["left"][0], GPIO.LOW)
     GPIO.output(in_values["left"][1], GPIO.LOW)
     GPIO.output(in_values["right"][0], GPIO.LOW)
@@ -102,6 +112,7 @@ def go_to_dest(direction):
         GPIO.output(in_values["back"][1], GPIO.HIGH)
     
 def destroy():
+    print(f"end time {datetime.now().strftime('%S.%f')[:-4]}")
     global deviations
     
     for key in pwm_pins:
