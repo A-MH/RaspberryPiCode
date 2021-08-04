@@ -12,25 +12,33 @@ from pynput import keyboard
 import LFUController as LFU
 import matplotlib.pyplot as plt
 import numpy as np
+import sys
+import time
+import atexit
+
+def exit_handler():
+    destroy()
+
+atexit.register(exit_handler)
 
 travel_distance = 7
 
 pwm = 0
 
-default_pwm = 50
-homing_pwm = 15
+default_pwm = 100
+homing_pwm = 30
 pwm_acceleration = 1000 * default_pwm
 pwm_deceleration = 2 * default_pwm
 
-en_values = {"front": 20, "back": 8, "left": 25, "right": 17}
+en_values = {"right": 20, "left": 8, "back": 25, "front": 17}
 
 pwm_pins = {"front": None, "back": None, "left": None, "right": None}
 
-in_values = {"front": [16, 12], "back": [1, 7], "left": [24, 23], "right": [18, 15]}
+in_values = {"right": [12, 16], "left": [1, 7], "back": [24, 23], "front": [15, 18]}
 
 pwm_multipliers = {"front": 1, "back": 1, "left": 1, "right": 1}
 
-end_offsets = [-2, -2, -5, -5]
+end_offsets = [-5, -5, -5, -5]
 
 deviations_padding = 6
 deviations = np.ones([deviations_padding,4]) * 100000
@@ -38,20 +46,26 @@ deviations = np.ones([deviations_padding,4]) * 100000
 ctrl_held = False
 
 def on_press(key):
-    global travel_directio71n
+    global travel_direction
     global travel_distance
     global ctrl_held
     global end_offsets
     if (key == keyboard.Key.up):
         go_to_dest("left", "right", 0, 1, travel_distance, end_offsets[0], end_offsets[1])
+        travel_direction = "right"
+        print("releasing up")
     elif(key == keyboard.Key.down):
         go_to_dest("right", "left", 3, 2, travel_distance, end_offsets[3], end_offsets[2])
+        controller.release(keyboard.Key.down)
+        travel_direction = "forward"
     elif(key == keyboard.Key.left):
         go_to_dest("back", "front", 2, 0, travel_distance, end_offsets[2], end_offsets[0])
+        controller.release(keyboard.Key.left)
+        travel_direction = "back"
     elif(key == keyboard.Key.right):
         go_to_dest("front", "back", 1, 3, travel_distance, end_offsets[1], end_offsets[3])
-#     elif(key == keyboard.KeyCode(0x60)):
-#         print("1 pessed")
+        travel_direction = "left"
+        print("releasing right")
     elif key == keyboard.Key.ctrl:
         print("ctrl held")
         ctrl_held = True
@@ -65,6 +79,27 @@ def on_press(key):
         except:
             pass
 
+def start_travel():
+    global travel_direction
+    travel_direction = "forward"
+    global end_offsets
+    while True:
+        if (travel_direction == "forward"):
+            go_to_dest("left", "right", 0, 1, travel_distance, end_offsets[0], end_offsets[1])
+            travel_direction = "right"
+        elif(travel_direction == "back"):
+            go_to_dest("right", "left", 3, 2, travel_distance, end_offsets[3], end_offsets[2])
+            controller.release(keyboard.Key.down)
+            travel_direction = "forward"
+        elif(travel_direction == "left"):
+            go_to_dest("back", "front", 2, 0, travel_distance, end_offsets[2], end_offsets[0])
+            controller.release(keyboard.Key.left)
+            travel_direction = "back"
+        elif(travel_direction == "right"):
+            go_to_dest("front", "back", 1, 3, travel_distance, end_offsets[1], end_offsets[3])
+            travel_direction = "left"
+        time.sleep(0.1)
+    
 def on_release(key):
     global ctrl
     if key == keyboard.Key.ctrl:
@@ -110,7 +145,7 @@ def go_to_dest(rel_left, rel_right, sensor_left, sensor_right, travel_distance, 
     dec_counter_right = 0
     dec_counter_home = 0
     dec_counter_thre = 3
-    rise_threshold = 800
+    rise_threshold = 600
     destination_reached_left = False
     destination_reached_right = False
     check_for_rise = False
@@ -118,13 +153,14 @@ def go_to_dest(rel_left, rel_right, sensor_left, sensor_right, travel_distance, 
     is_accelerating = True
     GPIO.output(in_values[rel_left][0], GPIO.HIGH)
     GPIO.output(in_values[rel_right][1], GPIO.HIGH)
-    print(f"entring loop {datetime.now().strftime('%S.%f')[:-4]}")
+    old_time = datetime.now()
+#     print(f"entring loop {old_time.strftime('%S.%f')[:-4]}")
     while not (destination_reached_left and destination_reached_right):
 #         print("entered loop")
         if is_accelerating:
 #             print("is accelerating")
-            pwm_left = 80
-            pwm_right = 80
+            pwm_left = 100
+            pwm_right = 100
             if (acc_counter > 1):
                 is_accelerating = False
                 if travel_distance > 2:
@@ -140,7 +176,7 @@ def go_to_dest(rel_left, rel_right, sensor_left, sensor_right, travel_distance, 
         deviations = np.append(deviations, [LFU.get_deviation()], axis = 0)
         # after a junction is registered, we have to wait a bit before 
         if not (check_for_junction or check_for_rise) and \
-           deviations[-1, sensor_left] - deviations[-deviations_padding, sensor_left] < rise_threshold:
+           deviations[-1, sensor_left] - deviations[-deviations_padding, sensor_left] < 0:
 #             print(f"ready for rise {datetime.now().strftime('%S.%f')[:-4]}")
             check_for_rise = True
         if check_for_rise and not check_for_junction and \
@@ -154,33 +190,34 @@ def go_to_dest(rel_left, rel_right, sensor_left, sensor_right, travel_distance, 
             check_for_rise = False
             check_for_junction = False
             distance_travelled += 1
-            print(f"junction {distance_travelled} reached {datetime.now().strftime('%S.%f')[:-4]}")
+            print(f"junction {distance_travelled} reached {(datetime.now() - old_time).seconds}.{(datetime.now() - old_time).microseconds}")
+            old_time = datetime.now()
         if distance_travelled == travel_distance:
             if not destination_reached_left and deviations[offset_left, sensor_left] > deviations[-1, sensor_left]:
-#                         print("left wheel stopping")
                 if dec_counter_left > 0:
                     GPIO.output(in_values[rel_left][1], GPIO.LOW)
                     pwm_left = 0
                     dec_counter_left = 0
                     destination_reached_left = True
+#                     print("left wheel stopping")
                 else:
                     GPIO.output(in_values[rel_left][0], GPIO.LOW)
                     GPIO.output(in_values[rel_left][1], GPIO.HIGH)
-                    pwm_left = 100
+                    pwm_left = 90
                     dec_counter_left += 1
             if not destination_reached_right and deviations[offset_right, sensor_right] > deviations[-1, sensor_right]:
-#                         print("right wheel stopping")
                 if dec_counter_right > 0:
                     GPIO.output(in_values[rel_right][0], GPIO.LOW)
                     pwm_right = 0
                     dec_counter_right = 0
                     destination_reached_right = True
+#                     print("right wheel stopping")
                 else:
                     GPIO.output(in_values[rel_right][1], GPIO.LOW)
                     GPIO.output(in_values[rel_right][0], GPIO.HIGH)
-                    pwm_right = 100
+                    pwm_right = 90
                     dec_counter_right += 1
-        if travel_distance > 2 and travel_distance == distance_travelled + 2 and dec_counter_home <= dec_counter_thre:
+        elif travel_distance > 2 and travel_distance == distance_travelled + 1 and dec_counter_home <= dec_counter_thre:
             rise_threshold = 500
             if dec_counter_home == 0:
                 GPIO.output(in_values[rel_left][0], GPIO.LOW)
@@ -201,13 +238,21 @@ def go_to_dest(rel_left, rel_right, sensor_left, sensor_right, travel_distance, 
         pwm_pins[rel_right].ChangeDutyCycle(pwm_right * pwm_multipliers[rel_right])
 
 def destroy():
+    global pwm_pins
     global deviations
+    global controller
+    
+    controller.release(keyboard.Key.up)
+    controller.release(keyboard.Key.down)
+    controller.release(keyboard.Key.left)
+    controller.release(keyboard.Key.right)
 
     for key in pwm_pins:
         pwm_pins[key].stop()
     GPIO.cleanup() # Release all GPIO
 #     print(deviations.shape)
     plt.grid(axis='x', markevery=1)
+    plt.grid(axis='y', markevery=1)
     deviations = deviations[deviations_padding:]
     x_axis = range(deviations.shape[0])
     plt.plot(x_axis, deviations[:, 0], 'b', x_axis, deviations[:, 1], 'r', x_axis, deviations[:, 2], 'k', x_axis, deviations[:, 3], 'y')
@@ -218,3 +263,10 @@ def destroy():
 
 if __name__ == '__main__':     # Program entrance
     setup()
+    global travel_direction
+    travel_direction = "forward"
+    controller = keyboard.Controller()
+    try:
+        start_travel()
+    except KeyboardInterrupt:
+        destroy()
