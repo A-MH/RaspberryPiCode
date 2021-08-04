@@ -24,17 +24,17 @@ pwm = 0
 
 wd = 21.5 # wheel distance (distance between two opposite wheels
    
-default_pwm = 15 
+default_pwm = 100
 pwm_acceleration = 1000 * default_pwm
 pwm_deceleration = 2 * default_pwm
 
-en_values = {"front": 20, "back": 8, "left": 25, "right": 17}
+en_values = {"right": 20, "left": 8, "back": 25, "front": 17}
 
 pwm_pins = {"front": None, "back": None, "left": None, "right": None}
 
-in_values = {"front": [16, 12], "back": [1, 7], "left": [24, 23], "right": [18, 15]}
+in_values = {"right": [12, 16], "left": [1, 7], "back": [24, 23], "front": [15, 18]}
 
-pwm_multipliers = {"front": 1, "back": 1, "left": 1, "right": 1}
+pwm_multipliers = {"front": 1, "back": 1, "left": 1, "right": 0.9}
 
 end_offsets = [-4, -2, -4, -2]
 
