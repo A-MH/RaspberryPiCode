@@ -23,18 +23,18 @@ is_decelerating = False
 pwm = 0
 
 wd = 21.5 # wheel distance (distance between two opposite wheels
-   
-default_pwm = 100
+    
+default_pwm = 20
 pwm_acceleration = 1000 * default_pwm
 pwm_deceleration = 2 * default_pwm
 
-en_values = {"right": 20, "left": 8, "back": 25, "front": 17}
+en_values = {"right": 20, "left": 8, "front": 25, "back": 17}
 
 pwm_pins = {"front": None, "back": None, "left": None, "right": None}
-
-in_values = {"right": [12, 16], "left": [1, 7], "back": [24, 23], "front": [15, 18]}
-
-pwm_multipliers = {"front": 1, "back": 1, "left": 1, "right": 0.9}
+     
+in_values = {"right": [12, 16], "left": [1, 7], "front": [24, 23], "back": [15, 18]}
+     
+pwm_multipliers = {"front": 1, "back": 1, "left": 1, "right": 1}
 
 end_offsets = [-4, -2, -4, -2]
 
@@ -105,11 +105,11 @@ def go_to_dest(direction):
         GPIO.output(in_values["left"][1], GPIO.HIGH)
         GPIO.output(in_values["right"][0], GPIO.HIGH)
     elif direction == "left":
-        GPIO.output(in_values["front"][1], GPIO.HIGH)
-        GPIO.output(in_values["back"][0], GPIO.HIGH)
-    else:
         GPIO.output(in_values["front"][0], GPIO.HIGH)
         GPIO.output(in_values["back"][1], GPIO.HIGH)
+    else:
+        GPIO.output(in_values["front"][1], GPIO.HIGH)
+        GPIO.output(in_values["back"][0], GPIO.HIGH)
     
 def destroy():
     print(f"end time {datetime.now().strftime('%S.%f')[:-4]}")
@@ -134,3 +134,4 @@ if __name__ == '__main__':     # Program entrance
         on_press=on_press,
         on_release=on_release)
     listener.start()
+ 

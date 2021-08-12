@@ -21,24 +21,24 @@ def exit_handler():
 
 atexit.register(exit_handler)
 
-travel_distance = 7
+travel_distance = 5
 
 pwm = 0
 
 default_pwm = 100
-homing_pwm = 30
+homing_pwm = 20
 pwm_acceleration = 1000 * default_pwm
 pwm_deceleration = 2 * default_pwm
 
-en_values = {"right": 20, "left": 8, "back": 25, "front": 17}
+en_values = {"right": 20, "left": 8, "front": 25, "back": 17}
 
 pwm_pins = {"front": None, "back": None, "left": None, "right": None}
 
-in_values = {"right": [12, 16], "left": [1, 7], "back": [24, 23], "front": [15, 18]}
+in_values = {"right": [12, 16], "left": [1, 7], "front": [23, 24], "back": [18, 15]}
 
 pwm_multipliers = {"front": 1, "back": 1, "left": 1, "right": 1}
 
-end_offsets = [-5, -5, -5, -5]
+end_offsets = [-12, -12, -13, -12]
 
 deviations_padding = 6
 deviations = np.ones([deviations_padding,4]) * 100000
@@ -53,19 +53,15 @@ def on_press(key):
     if (key == keyboard.Key.up):
         go_to_dest("left", "right", 0, 1, travel_distance, end_offsets[0], end_offsets[1])
         travel_direction = "right"
-        print("releasing up")
     elif(key == keyboard.Key.down):
         go_to_dest("right", "left", 3, 2, travel_distance, end_offsets[3], end_offsets[2])
-        controller.release(keyboard.Key.down)
         travel_direction = "forward"
     elif(key == keyboard.Key.left):
         go_to_dest("back", "front", 2, 0, travel_distance, end_offsets[2], end_offsets[0])
-        controller.release(keyboard.Key.left)
         travel_direction = "back"
     elif(key == keyboard.Key.right):
         go_to_dest("front", "back", 1, 3, travel_distance, end_offsets[1], end_offsets[3])
         travel_direction = "left"
-        print("releasing right")
     elif key == keyboard.Key.ctrl:
         print("ctrl held")
         ctrl_held = True
@@ -81,7 +77,7 @@ def on_press(key):
 
 def start_travel():
     global travel_direction
-    travel_direction = "forward"
+    travel_direction = "left"
     global end_offsets
     while True:
         if (travel_direction == "forward"):
@@ -89,12 +85,10 @@ def start_travel():
             travel_direction = "right"
         elif(travel_direction == "back"):
             go_to_dest("right", "left", 3, 2, travel_distance, end_offsets[3], end_offsets[2])
-            controller.release(keyboard.Key.down)
             travel_direction = "forward"
         elif(travel_direction == "left"):
             go_to_dest("back", "front", 2, 0, travel_distance, end_offsets[2], end_offsets[0])
-            controller.release(keyboard.Key.left)
-            travel_direction = "back"
+            travel_direction = "right"
         elif(travel_direction == "right"):
             go_to_dest("front", "back", 1, 3, travel_distance, end_offsets[1], end_offsets[3])
             travel_direction = "left"
@@ -118,18 +112,10 @@ def setup():
         GPIO.output(value[0], GPIO.LOW)
         GPIO.setup(value[1], GPIO.OUT)
         GPIO.output(value[1], GPIO.LOW)
-    listener = keyboard.Listener(
-    on_press=on_press,
-    on_release=on_release)
-    listener.start()
-    # Collect events until released
-#     with keyboard.Listener(
-#         on_press=on_press,
-#         on_release=on_release) as listener:
-#         listener.join()
-#         try:
-#         except KeyboardInterrupt:
-#             destroy()
+#     listener = keyboard.Listener(
+#     on_press=on_press,
+#     on_release=on_release)
+#     listener.start()
 
 def go_to_dest(rel_left, rel_right, sensor_left, sensor_right, travel_distance, offset_left, offset_right):
     global deviations
@@ -218,14 +204,14 @@ def go_to_dest(rel_left, rel_right, sensor_left, sensor_right, travel_distance, 
                     pwm_right = 90
                     dec_counter_right += 1
         elif travel_distance > 2 and travel_distance == distance_travelled + 1 and dec_counter_home <= dec_counter_thre:
-            rise_threshold = 500
+            rise_threshold = 250
             if dec_counter_home == 0:
                 GPIO.output(in_values[rel_left][0], GPIO.LOW)
                 GPIO.output(in_values[rel_left][1], GPIO.HIGH)
                 GPIO.output(in_values[rel_right][1], GPIO.LOW)
                 GPIO.output(in_values[rel_right][0], GPIO.HIGH)
-                pwm_left = 15
-                pwm_right = 15
+                pwm_left = 10
+                pwm_right = 10
             elif dec_counter_home >= dec_counter_thre:
                 GPIO.output(in_values[rel_left][1], GPIO.LOW)
                 GPIO.output(in_values[rel_left][0], GPIO.HIGH)
@@ -240,12 +226,6 @@ def go_to_dest(rel_left, rel_right, sensor_left, sensor_right, travel_distance, 
 def destroy():
     global pwm_pins
     global deviations
-    global controller
-    
-    controller.release(keyboard.Key.up)
-    controller.release(keyboard.Key.down)
-    controller.release(keyboard.Key.left)
-    controller.release(keyboard.Key.right)
 
     for key in pwm_pins:
         pwm_pins[key].stop()
@@ -265,7 +245,6 @@ if __name__ == '__main__':     # Program entrance
     setup()
     global travel_direction
     travel_direction = "forward"
-    controller = keyboard.Controller()
     try:
         start_travel()
     except KeyboardInterrupt:
