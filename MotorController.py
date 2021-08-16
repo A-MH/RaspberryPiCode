@@ -21,12 +21,12 @@ def exit_handler():
 
 atexit.register(exit_handler)
 
-travel_distance = 5
+travel_distance = 2
 
 pwm = 0
 
 default_pwm = 100
-homing_pwm = 20
+homing_pwm = 25
 pwm_acceleration = 1000 * default_pwm
 pwm_deceleration = 2 * default_pwm
 
@@ -36,12 +36,13 @@ pwm_pins = {"front": None, "back": None, "left": None, "right": None}
 
 in_values = {"right": [12, 16], "left": [1, 7], "front": [23, 24], "back": [18, 15]}
 
-pwm_multipliers = {"front": 1, "back": 1, "left": 1, "right": 1}
+pwm_multipliers = {"front": 0.9, "back": 0.9, "left": 1, "right": 0.9}
+pwm_multipliers_reverse = {"front": 0.9, "back": 1, "left": 1, "right": 1}
 
-end_offsets = [-12, -12, -13, -12]
+end_offsets = [-12, -12, -14, -11]
 
-deviations_padding = 6
-deviations = np.ones([deviations_padding,4]) * 100000
+sen_reading_offset = 12
+deviations = np.ones([sen_reading_offset,4]) * 100000
 
 ctrl_held = False
 
@@ -82,7 +83,7 @@ def start_travel():
     while True:
         if (travel_direction == "forward"):
             go_to_dest("left", "right", 0, 1, travel_distance, end_offsets[0], end_offsets[1])
-            travel_direction = "right"
+            travel_direction = "back"
         elif(travel_direction == "back"):
             go_to_dest("right", "left", 3, 2, travel_distance, end_offsets[3], end_offsets[2])
             travel_direction = "forward"
@@ -92,7 +93,7 @@ def start_travel():
         elif(travel_direction == "right"):
             go_to_dest("front", "back", 1, 3, travel_distance, end_offsets[1], end_offsets[3])
             travel_direction = "left"
-        time.sleep(0.1)
+        time.sleep(0.5)
     
 def on_release(key):
     global ctrl
@@ -122,16 +123,17 @@ def go_to_dest(rel_left, rel_right, sensor_left, sensor_right, travel_distance, 
     global pwm_pins
     global pwm_multipliers
     global should_stop
+    global sen_reading_offset
     
-    pwm_right = 0
-    pwm_left = 0
+    pwm_right = default_pwm
+    pwm_left = default_pwm
     distance_travelled = 0
     acc_counter = 0
     dec_counter_left = 0
     dec_counter_right = 0
     dec_counter_home = 0
-    dec_counter_thre = 3
-    rise_threshold = 600
+    dec_counter_thre = 15
+    rise_threshold = 1200
     destination_reached_left = False
     destination_reached_right = False
     check_for_rise = False
@@ -145,38 +147,40 @@ def go_to_dest(rel_left, rel_right, sensor_left, sensor_right, travel_distance, 
 #         print("entered loop")
         if is_accelerating:
 #             print("is accelerating")
-            pwm_left = 100
-            pwm_right = 100
-            if (acc_counter > 1):
+            if travel_distance > 2:
                 is_accelerating = False
-                if travel_distance > 2:
-                    pwm_left = default_pwm
-                    pwm_right = default_pwm
-                else:
-                    pwm_left = homing_pwm
-                    pwm_right = homing_pwm
-                acc_counter = 0
-            else:
-                acc_counter += 1
+                sen_reading_offset = 6
+            elif travel_distance == 2 and acc_counter >= 2:
+                is_accelerating = False
+                pwm_left = homing_pwm
+                pwm_right = homing_pwm
+            elif travel_distance == 1 and acc_counter >= 2:
+                is_accelerating = False
+                pwm_left = homing_pwm
+                pwm_right = homing_pwm
+            acc_counter += 1
 #             print("here")
         deviations = np.append(deviations, [LFU.get_deviation()], axis = 0)
-        # after a junction is registered, we have to wait a bit before 
+        # after a junction is registered, we have to wait a bit before checking for rise
         if not (check_for_junction or check_for_rise) and \
-           deviations[-1, sensor_left] - deviations[-deviations_padding, sensor_left] < 0:
+           deviations[-1, sensor_left] - deviations[-sen_reading_offset, sensor_left] < 0:
 #             print(f"ready for rise {datetime.now().strftime('%S.%f')[:-4]}")
             check_for_rise = True
+        # before checking for junction we need to check for rise
         if check_for_rise and not check_for_junction and \
-           deviations[-1, sensor_left] - deviations[-deviations_padding, sensor_left] >= rise_threshold and \
-           deviations[-1, sensor_right] - deviations[-deviations_padding, sensor_right] >= rise_threshold:
+           deviations[-1, sensor_left] - deviations[-sen_reading_offset, sensor_left] >= rise_threshold and \
+           deviations[-1, sensor_right] - deviations[-sen_reading_offset, sensor_right] >= rise_threshold:
 #             print(f"rise registered {datetime.now().strftime('%S.%f')[:-4]}")
             check_for_rise = False
             check_for_junction = True
+        # check for junction
         if check_for_junction and \
-           (deviations[-2, sensor_left] > deviations[-1, sensor_left] or deviations[-2, sensor_right] > deviations[-1, sensor_right]):
+           (deviations[-3, sensor_left] > deviations[-1, sensor_left] or deviations[-3, sensor_right] > deviations[-1, sensor_right]):
             check_for_rise = False
             check_for_junction = False
             distance_travelled += 1
-            print(f"junction {distance_travelled} reached {(datetime.now() - old_time).seconds}.{(datetime.now() - old_time).microseconds}")
+            print(f"junction {distance_travelled} reached {(datetime.now() - old_time).seconds}.{(datetime.now() - old_time).microseconds}" + \
+                  f"\t{deviations.shape[0] - sen_reading_offset - 1}")
             old_time = datetime.now()
         if distance_travelled == travel_distance:
             if not destination_reached_left and deviations[offset_left, sensor_left] > deviations[-1, sensor_left]:
@@ -189,7 +193,7 @@ def go_to_dest(rel_left, rel_right, sensor_left, sensor_right, travel_distance, 
                 else:
                     GPIO.output(in_values[rel_left][0], GPIO.LOW)
                     GPIO.output(in_values[rel_left][1], GPIO.HIGH)
-                    pwm_left = 90
+                    pwm_left = 80
                     dec_counter_left += 1
             if not destination_reached_right and deviations[offset_right, sensor_right] > deviations[-1, sensor_right]:
                 if dec_counter_right > 0:
@@ -201,18 +205,20 @@ def go_to_dest(rel_left, rel_right, sensor_left, sensor_right, travel_distance, 
                 else:
                     GPIO.output(in_values[rel_right][1], GPIO.LOW)
                     GPIO.output(in_values[rel_right][0], GPIO.HIGH)
-                    pwm_right = 90
+                    pwm_right = 80
                     dec_counter_right += 1
-        elif travel_distance > 2 and travel_distance == distance_travelled + 1 and dec_counter_home <= dec_counter_thre:
-            rise_threshold = 250
-            if dec_counter_home == 0:
-                GPIO.output(in_values[rel_left][0], GPIO.LOW)
-                GPIO.output(in_values[rel_left][1], GPIO.HIGH)
-                GPIO.output(in_values[rel_right][1], GPIO.LOW)
-                GPIO.output(in_values[rel_right][0], GPIO.HIGH)
-                pwm_left = 10
-                pwm_right = 10
-            elif dec_counter_home >= dec_counter_thre:
+        elif travel_distance == distance_travelled + 1:
+            sen_reading_offset = 12
+        elif travel_distance > 2 and travel_distance == distance_travelled + 2 and dec_counter_home <= dec_counter_thre:
+            sen_reading_offset = 9
+            if dec_counter_home < dec_counter_thre:
+#                 GPIO.output(in_values[rel_left][0], GPIO.LOW)
+#                 GPIO.output(in_values[rel_left][1], GPIO.HIGH)
+#                 GPIO.output(in_values[rel_right][1], GPIO.LOW)
+#                 GPIO.output(in_values[rel_right][0], GPIO.HIGH)
+                pwm_left = 0
+                pwm_right = 0
+            elif dec_counter_home == dec_counter_thre:
                 GPIO.output(in_values[rel_left][1], GPIO.LOW)
                 GPIO.output(in_values[rel_left][0], GPIO.HIGH)
                 GPIO.output(in_values[rel_right][0], GPIO.LOW)
@@ -220,8 +226,12 @@ def go_to_dest(rel_left, rel_right, sensor_left, sensor_right, travel_distance, 
                 pwm_right = homing_pwm
                 pwm_left = homing_pwm
             dec_counter_home += 1
-        pwm_pins[rel_left].ChangeDutyCycle(pwm_left * pwm_multipliers[rel_left])
-        pwm_pins[rel_right].ChangeDutyCycle(pwm_right * pwm_multipliers[rel_right])
+        if travel_direction == 'forward' or travel_direction == 'right':
+            pwm_pins[rel_left].ChangeDutyCycle(pwm_left * pwm_multipliers[rel_left])
+            pwm_pins[rel_right].ChangeDutyCycle(pwm_right * pwm_multipliers[rel_right])
+        else:
+            pwm_pins[rel_left].ChangeDutyCycle(pwm_left * pwm_multipliers_reverse[rel_left])
+            pwm_pins[rel_right].ChangeDutyCycle(pwm_right * pwm_multipliers_reverse[rel_right])
 
 def destroy():
     global pwm_pins
@@ -233,7 +243,7 @@ def destroy():
 #     print(deviations.shape)
     plt.grid(axis='x', markevery=1)
     plt.grid(axis='y', markevery=1)
-    deviations = deviations[deviations_padding:]
+    deviations = deviations[sen_reading_offset:]
     x_axis = range(deviations.shape[0])
     plt.plot(x_axis, deviations[:, 0], 'b', x_axis, deviations[:, 1], 'r', x_axis, deviations[:, 2], 'k', x_axis, deviations[:, 3], 'y')
 #     plt.plot(x_axis, diff_array, 'k', x_axis, avg_diff_array, 'y', x_axis, pid_output_array, 'c', x_axis, pid_p_array, 'r', x_axis, pid_i_array, 'g', x_axis, pid_d_array, 'b')
