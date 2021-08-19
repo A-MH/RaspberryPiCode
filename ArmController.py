@@ -18,8 +18,8 @@ pwm_value = 40
 
 wd = 21.5 # wheel distance (distance between two opposite wheels
 
-en_arm = 22
-in_values = {"arm": [23, 24], "e-magnet": [6, 10]}
+en_arm = 5
+in_values = {"arm": [6, 13], "e-magnet": [19, 26]}
 pwm_pin = None
 
 
@@ -31,9 +31,10 @@ def on_press(key):
         GPIO.output(in_values['arm'][0], GPIO.LOW)
         GPIO.output(in_values['arm'][1], GPIO.HIGH)
     elif (key == keyboard.Key.left):
-        print("2" )
+        print("magnet activated" )
         GPIO.output(in_values['e-magnet'][0], GPIO.HIGH)
     elif key == keyboard.Key.right:
+        print("all deactivated")
         GPIO.output(in_values['arm'][0], GPIO.LOW)
         GPIO.output(in_values['arm'][1], GPIO.LOW)
         GPIO.output(in_values['e-magnet'][0], GPIO.LOW)
