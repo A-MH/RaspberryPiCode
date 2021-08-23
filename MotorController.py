@@ -39,7 +39,7 @@ in_values = {"right": [12, 16], "left": [1, 7], "front": [23, 24], "back": [18, 
 pwm_multipliers = {"front": 0.9, "back": 0.9, "left": 1, "right": 0.9}
 pwm_multipliers_reverse = {"front": 0.9, "back": 1, "left": 1, "right": 1}
 
-end_offsets = [-12, -12, -14, -11]
+end_offsets = [-12, -12, -12, -11]
 
 sen_reading_offset = 12
 deviations = np.ones([sen_reading_offset,4]) * 100000
@@ -93,7 +93,7 @@ def start_travel():
         elif(travel_direction == "right"):
             go_to_dest("front", "back", 1, 3, travel_distance, end_offsets[1], end_offsets[3])
             travel_direction = "left"
-        time.sleep(0.5)
+        time.sleep(2)
     
 def on_release(key):
     global ctrl
@@ -132,7 +132,7 @@ def go_to_dest(rel_left, rel_right, sensor_left, sensor_right, travel_distance, 
     dec_counter_left = 0
     dec_counter_right = 0
     dec_counter_home = 0
-    dec_counter_thre = 15
+    dec_counter_thre = 20
     rise_threshold = 1200
     destination_reached_left = False
     destination_reached_right = False
@@ -150,11 +150,11 @@ def go_to_dest(rel_left, rel_right, sensor_left, sensor_right, travel_distance, 
             if travel_distance > 2:
                 is_accelerating = False
                 sen_reading_offset = 6
-            elif travel_distance == 2 and acc_counter >= 2:
+            elif travel_distance == 2 and acc_counter >= 1:
                 is_accelerating = False
                 pwm_left = homing_pwm
                 pwm_right = homing_pwm
-            elif travel_distance == 1 and acc_counter >= 2:
+            elif travel_distance == 1 and acc_counter >= 1:
                 is_accelerating = False
                 pwm_left = homing_pwm
                 pwm_right = homing_pwm

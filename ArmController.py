@@ -33,7 +33,7 @@ def on_press(key):
     elif (key == keyboard.Key.left):
         print("magnet activated" )
         GPIO.output(in_values['e-magnet'][0], GPIO.HIGH)
-    elif key == keyboard.Key.right:
+    elif key == keyboard.Key.right: 
         print("all deactivated")
         GPIO.output(in_values['arm'][0], GPIO.LOW)
         GPIO.output(in_values['arm'][1], GPIO.LOW)
@@ -49,16 +49,10 @@ def on_press(key):
 def destroy():
     pwm_pin.stop()
     GPIO.cleanup() # Release all GPIO
-    
-# Collect events in a non-blocking fashion:
-listener = keyboard.Listener(
-    on_press=on_press)
-listener.start()
-
+     
 def setup():
     global pwm_pin
     global pwm_value
-    GPIO.setmode(GPIO.BCM)
     GPIO.setup(en_arm, GPIO.OUT) 
     pwm_pin = GPIO.PWM(en_arm, 100)
     pwm_pin.start(pwm_value)
@@ -69,4 +63,10 @@ def setup():
         GPIO.output(value[1], GPIO.LOW)
          
 if __name__ == '__main__':     # Program entrance
-    setup()
+    GPIO.setmode(GPIO.BCM)
+    # Collect events in a non-blocking fashion:
+    listener = keyboard.Listener(
+        on_press=on_press)
+    listener.start()
+
+setup()

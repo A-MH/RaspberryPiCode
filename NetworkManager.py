@@ -1,6 +1,6 @@
 
 # global subroute
 
-def get_subroute(ID):
-    subroute = 'n13-e5-l5-w5-s13'
+def get_commands_str(ID):
+    subroute = 'le 5-ri 5 10-'
     return subroute
