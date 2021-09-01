@@ -8,6 +8,10 @@ en_arm = 5
 in_values = {"arm": [6, 13], "e-magnet": [19, 26]}
 pwm_pin = None
 
+syringe_weight_full = 23.8
+download_rate = 1.5 # this value depends on viscosity and is correct only for a pwm of 15
+upload_rate = None # TODO: workout this value
+
 def setup():
     global pwm_pin
     global pwm_value
@@ -22,8 +26,9 @@ def setup():
 
 def on_press(key):
     if (key == keyboard.Key.down):
-        retract(20)
+        retract(100)
     elif (key == keyboard.Key.up):
+        time.sleep(2)
         extend_test()
     elif (key == keyboard.Key.left):
         print("magnet activated" )
@@ -42,7 +47,7 @@ def on_press(key):
         destroy()
         
 def enable_magnet():
-    print("magnet activated\n" )
+    print("magnet activated" )
     GPIO.output(in_values['e-magnet'][0], GPIO.HIGH)
     
 def disable_magnet():
@@ -54,34 +59,33 @@ def extend_test():
     GPIO.output(in_values['arm'][1], GPIO.HIGH)
 
 def extend(syringe_weight):
-    safety_margin = 1.1
     global duration_limits
-    global syringe_weight_max
-    duration_limits = [1.6, 4.6]
-    syringe_weight_max = 21.0
-    print('extending\n')
+    global syringe_weight_full
+    duration_limits = [1.7, 4.7]
+    print('extending')
     pwm_pin.ChangeDutyCycle(100)
-    duration = ((duration_limits[1] - duration_limits[0]) * syringe_weight / syringe_weight_max + duration_limits[0]) * safety_margin
+    duration = ((duration_limits[1] - duration_limits[0]) * syringe_weight / syringe_weight_full + duration_limits[0])
     GPIO.output(in_values['arm'][0], GPIO.LOW)
     GPIO.output(in_values['arm'][1], GPIO.HIGH)
     time.sleep(duration)
     GPIO.output(in_values['arm'][1], GPIO.LOW)
         
 def retract(pwm):
-    print(f'retracting with pwm = {pwm}')
     pwm_pin.ChangeDutyCycle(pwm)
-    if pwm == 0:
-        GPIO.output(in_values['arm'][0], GPIO.LOW)
-    else:
-        while True:
-            print (cm.read_scale())
-            GPIO.output(in_values['arm'][0], GPIO.HIGH)
-            GPIO.output(in_values['arm'][1], GPIO.LOW)
-            time.sleep(0.03)
-            print (cm.read_scale())
-            GPIO.output(in_values['arm'][0], GPIO.LOW)
-            time.sleep(1)
-
+    GPIO.output(in_values['arm'][0], GPIO.HIGH)
+    GPIO.output(in_values['arm'][1], GPIO.LOW)
+    
+def loadf(target_amount):
+    global download_rate
+    pwm_pin.ChangeDutyCycle(15)
+    GPIO.output(in_values['arm'][0], GPIO.HIGH)
+    GPIO.output(in_values['arm'][1], GPIO.LOW)
+    sleep_time = target_amount / download_rate
+    if sleep_time < 0.08:
+        sleep_time = 0.08
+    time.sleep(sleep_time)
+    GPIO.output(in_values['arm'][0], GPIO.LOW)
+    
 def destroy():
     print("all arm deactivated")
     GPIO.output(in_values['arm'][0], GPIO.LOW)

@@ -32,7 +32,7 @@ def setup():
     camera = PiCamera()
     camera.resolution = (640, 480)
     camera.rotation = 180
-    camera.start_preview(fullscreen=False, window=(0, 0, 640, 480))
+#     camera.start_preview(fullscreen=False, window=(0, 0, 640, 480))
     sleep(2)
     
 def log_time(log):
@@ -54,6 +54,8 @@ def read_scale():
     global stream
     global camera
     global old_time
+    global image
+    is_image_shown = False
     while True:
         old_time = datetime.now()
         stream.seek(0)
@@ -68,12 +70,14 @@ def read_scale():
     #     img = img.filter(ImageFilter.MinFilter(size=1))
         log_time('process')
 
-        # to see what is happenning with the boxes, or to adjust, uncomment following line
-#         ocr.show_boxes(img)
-#         img.show()
+
         digits = ocr.get_weight(img)
         log_time('read')
-        
+        # to see what is happenning with the boxes, or to adjust, uncomment following line
+        if __name__ == "__main__" and not is_image_shown:
+            is_image_shown = True
+            ocr.show_boxes(img)
+            img.show()
         if not digits == None:
             return digits/100
 
@@ -85,6 +89,7 @@ if __name__ == "__main__":
     try:
 #         while True:
         weights.append(read_scale())
+        print(weights)
     except KeyboardInterrupt:
         plot(weights)
     

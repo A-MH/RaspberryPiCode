@@ -27,11 +27,12 @@ digits_array = [
 [1,1,0,1,1,1,1],
 [0,1,1,1,0,0,0],
 [1,1,1,1,1,1,1],
-[1,1,1,1,0,0,1],
+[1,1,1,1,1,0,1],
 [0,0,0,0,0,0,0]]
 
 def show_boxes(img):
     Drawer = ImageDraw.Draw(img)
+    print("h")
     for i in range(5):
         for j in range(7):
             rectangle = (chosen_pixels[i][j][0] - 2, chosen_pixels[i][j][1] - 2, chosen_pixels[i][j][0] + 2, chosen_pixels[i][j][1] + 2)
@@ -55,8 +56,8 @@ def get_weight(img):
             segments[j] = 1 if img.getpixel(chosen_pixels[i][j]) == 0 else 0
 #         print(segments)
         digit = workout_digit(segments)
-#         print(digit)
         if digit == None:
+#             print(f"segment {i}: {segments}")
             return None
         digits += digit * 10**(4-i)
     return digits

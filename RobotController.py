@@ -44,31 +44,32 @@ def run_commands():
     commands_str = nm.get_commands_str(ID)
     format_commands(commands_str)
     print(f"commands: {commands}")
-    for command in commands:
-        target_weight = command[1][0]
-        Syringe_weight = command[1][1]
+    for i in range(len(commands)):
+        target_weight = commands[i][1][0]
+        print(f"\ntarget weight: {target_weight}")
+        syringe_weight = commands[i][1][1]
         ac.enable_magnet()
-        ac.extend(Syringe_weight)
+        ac.extend(syringe_weight)
         current_weight = cm.read_scale()
         old_weight = current_weight
-        current_pwm = 40
-        old_pwm = 100 # by setting old pwm to 100, we make sure that old and new value are not the same, and therefore ac.retract gets called in the while lopp
-        while current_weight - old_weight < target_weight:
-            if target_weight - current_weight < 0.5:
-                current_pwm = 20
-            elif target_weight - current_weight < 3:
-                current_pwm = 30
-            else:
-                current_pwm = 40
-            if not old_pwm == current_pwm:
-                ac.retract(current_pwm)
+        curr_weight_adjusted = 0
+        dead_time = 0
+        while curr_weight_adjusted < target_weight * 0.95:
+            ac.loadf(target_weight - curr_weight_adjusted + dead_time)
+            dead_time = 0
+            if target_weight < 0.3:
+                time.sleep(1)
+            time.sleep(2)
+            print(f"current weight: {curr_weight_adjusted}")
             current_weight = cm.read_scale()
-            old_pwm = current_pwm
-        print(f'loaded {current_weight - old_weight}g')
+            curr_weight_adjusted = current_weight - old_weight
+        print(f'loaded {curr_weight_adjusted}g')
         ac.disable_magnet()
-        Syringe_weight -= current_weight
+#         syringe_weight -= current_weight
         ac.retract(100)
         print('target weight reached/n')
+        if i + 1 < len(commands):
+            commands[i+1][1][1] = syringe_weight - curr_weight_adjusted
         time.sleep(ac.duration_limits[1])
             
 def destroy():
