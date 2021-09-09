@@ -48,26 +48,27 @@ def run_commands():
         target_weight = commands[i][1][0]
         print(f"\ntarget weight: {target_weight}")
         syringe_weight = commands[i][1][1]
-        ac.enable_magnet()
-        ac.extend(syringe_weight)
-        current_weight = cm.read_scale()
-        old_weight = current_weight
+        orig_weight = cm.read_scale()
         curr_weight_adjusted = 0
-        dead_time = 0
-        while curr_weight_adjusted < target_weight * 0.95:
-            ac.loadf(target_weight - curr_weight_adjusted + dead_time)
-            dead_time = 0
+        ac.extend(syringe_weight)
+        ac.enable_magnet()
+        dead_weight = 0.7
+        while target_weight > 0.1 and curr_weight_adjusted < target_weight * 0.95 or target_weight <= 0.1 and curr_weight_adjusted < target_weight * 0.8:
+            ac.loadf(target_weight - curr_weight_adjusted + dead_weight)
+            dead_weight = 0
             if target_weight < 0.3:
+                if target_weight - curr_weight_adjusted < 0.1:
+                    time.sleep(1.5)
                 time.sleep(1)
             time.sleep(2)
-            print(f"current weight: {curr_weight_adjusted}")
             current_weight = cm.read_scale()
-            curr_weight_adjusted = current_weight - old_weight
-        print(f'loaded {curr_weight_adjusted}g')
+            curr_weight_adjusted = round(current_weight - orig_weight, 2)
+            print(f"current weight: {curr_weight_adjusted}")
         ac.disable_magnet()
-#         syringe_weight -= current_weight
         ac.retract(100)
-        print('target weight reached/n')
+        current_weight = cm.read_scale()
+        curr_weight_adjusted = round(current_weight - orig_weight, 2)
+        print(f'target weight reached: {curr_weight_adjusted}g')
         if i + 1 < len(commands):
             commands[i+1][1][1] = syringe_weight - curr_weight_adjusted
         time.sleep(ac.duration_limits[1])

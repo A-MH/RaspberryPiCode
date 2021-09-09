@@ -56,6 +56,7 @@ def read_scale():
     global old_time
     global image
     is_image_shown = False
+    is_warning_shown = False
     while True:
         old_time = datetime.now()
         stream.seek(0)
@@ -78,8 +79,13 @@ def read_scale():
             is_image_shown = True
             ocr.show_boxes(img)
             img.show()
-        if not digits == None:
-            return digits/100
+        elif not digits == None:
+            if digits > 20000:
+                if not is_warning_shown:
+                    print('Error: scale seems to be off')
+                is_warning_shown = True
+            else:
+                return digits/100
 
 setup()
 
