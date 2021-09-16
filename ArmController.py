@@ -32,7 +32,7 @@ def on_press(key):
         retract(100)
     elif (key == keyboard.Key.up):
         time.sleep(2)
-        extend_test(100)
+        extend(12.1)
 #         extend(0)
     elif (key == keyboard.Key.left):
         print("magnet activated")
@@ -86,7 +86,7 @@ def retract(pwm):
 def loadf(target_amount):
     global download_rate
     if target_amount <= 0.1:
-        pwm_pin.ChangeDutyCycle(20)
+        pwm_pin.ChangeDutyCycle(30)
     else:
         pwm_pin.ChangeDutyCycle(30)
     GPIO.output(in_values['arm'][0], GPIO.HIGH)

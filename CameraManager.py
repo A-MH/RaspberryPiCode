@@ -15,7 +15,6 @@ def makeBW(x):
     thresh = 55
     return 255 if x > thresh else 0
 
-    
 def plot(array):
     plt.grid(axis='x', markevery=1)
     plt.grid(axis='y', markevery=1)
@@ -49,7 +48,7 @@ def log_time(log):
             old_time = datetime.now()
         old_time = datetime.now()
 
-def read_scale():
+def get_weight():
     digits = None
     global stream
     global camera
@@ -72,20 +71,18 @@ def read_scale():
         log_time('process')
 
 
-        digits = ocr.get_weight(img)
+        digits = ocr.read_scale(img)
         log_time('read')
         # to see what is happenning with the boxes, or to adjust, uncomment following line
         if __name__ == "__main__" and not is_image_shown:
             is_image_shown = True
             ocr.show_boxes(img)
             img.show()
-        elif not digits == None:
-            if digits > 20000:
-                if not is_warning_shown:
-                    print('Error: scale seems to be off')
-                is_warning_shown = True
-            else:
-                return digits/100
+            if digits is not None:
+                digits/100
+            return digits
+        elif digits is not None:
+            return digits/100
 
 setup()
 
@@ -94,7 +91,7 @@ if __name__ == "__main__":
     start_time = datetime.now()
     try:
 #         while True:
-        weights.append(read_scale())
+        weights.append(get_weight())
         print(weights)
     except KeyboardInterrupt:
         plot(weights)
