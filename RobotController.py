@@ -52,7 +52,7 @@ def run_commands():
         curr_weight_adjusted = 0
         ac.extend(syringe_weight)
         ac.enable_magnet()
-        dead_weight = 0.4
+        dead_weight = 0.5
         while target_weight > 0.1 and curr_weight_adjusted < round(target_weight * 0.95, 2) or\
               target_weight <= 0.1 and curr_weight_adjusted < round(target_weight * 0.8, 2):
             ac.loadf(target_weight - curr_weight_adjusted + dead_weight)
