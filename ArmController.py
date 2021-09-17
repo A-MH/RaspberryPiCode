@@ -26,13 +26,22 @@ def setup():
         GPIO.setup(value[1], GPIO.OUT)
         GPIO.output(value[1], GPIO.LOW)
 
+def prepare_syringe():
+    enable_magnet()
+    global syringe_weight_full
+    extend(syringe_weight_full + 5)
+    retract(40, 0.5)
+    disable_magnet()
+    retract(100, 5)
+
 def on_press(key):
     global syringe_weight_full
     if (key == keyboard.Key.down):
         retract(100)
     elif (key == keyboard.Key.up):
         time.sleep(2)
-        extend(12.1)
+        extend(syringe_weight_full + 5)
+        retract(40)
 #         extend(0)
     elif (key == keyboard.Key.left):
         print("magnet activated")
@@ -66,27 +75,29 @@ def extend_test(pwm):
     GPIO.output(in_values['arm'][0], GPIO.LOW)
     GPIO.output(in_values['arm'][1], GPIO.HIGH)
 
-def extend(syringe_weight):
+def extend(syringe_weight = None, duration = None):
     global duration_limits
     global syringe_weight_full
     duration_limits = [1.7, 4.7]
     print('extending')
     pwm_pin.ChangeDutyCycle(100)
-    duration = ((duration_limits[1] - duration_limits[0]) * syringe_weight / syringe_weight_full + duration_limits[0])
+    if syringe_weight is not None:
+        duration = ((duration_limits[1] - duration_limits[0]) * syringe_weight / syringe_weight_full + duration_limits[0])
     GPIO.output(in_values['arm'][0], GPIO.LOW)
     GPIO.output(in_values['arm'][1], GPIO.HIGH)
     time.sleep(duration)
     GPIO.output(in_values['arm'][1], GPIO.LOW)
         
-def retract(pwm):
+def retract(pwm, duration = 0):
     pwm_pin.ChangeDutyCycle(pwm)
     GPIO.output(in_values['arm'][0], GPIO.HIGH)
     GPIO.output(in_values['arm'][1], GPIO.LOW)
+    time.sleep(duration)
     
 def loadf(target_amount):
     global download_rate
     if target_amount <= 0.1:
-        pwm_pin.ChangeDutyCycle(30)
+        pwm_pin.ChangeDutyCycle(20)
     else:
         pwm_pin.ChangeDutyCycle(30)
     GPIO.output(in_values['arm'][0], GPIO.HIGH)
