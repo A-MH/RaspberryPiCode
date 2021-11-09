@@ -8,7 +8,7 @@ sock.connect((host, port))
 ID = '2'
 
 def get_commands():
-    receivedData = sock.recv(1024).decode("UTF-8") #receiveing data in Byte fron C#, and converting it to String
+    receivedData = sock.recv(1024).decode("UTF-8") #receiveing data in Byte from C#, and converting it to String
     print(f"received: {receivedData}")
     time.sleep(5)
     Send_result(f"message from client {ID}")

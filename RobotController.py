@@ -6,8 +6,12 @@ import MotorController as mc
 import CameraManager as cm
 import ArmController as ac
 import time
+from datetime import datetime
 
 ID = 1
+
+def setup():
+    nm.setup_connection(ID)
 
 def format_commands(command_str):
     global commands
@@ -40,7 +44,8 @@ def format_commands(command_str):
         else:
            parameter += char
 
-def loadf(parameters):
+def loadf(parameters, dead_weight):
+    dead_weight = 0
     target_weight = parameters[1][0]
     print(f"\ntarget weight: {target_weight}")
     syringe_weight = parameters[1][1]
@@ -72,28 +77,52 @@ def loadf(parameters):
     curr_weight_adjusted = round(current_weight - orig_weight, 2)
     print(f'target weight reached: {curr_weight_adjusted}g')
     time.sleep(ac.duration_limits[1])
-    return syringe_weight - curr_weight_adjusted
+    return (syringe_weight - curr_weight_adjusted, dead_weight)
     
 
 def run_commands():
-    commands_str = nm.get_commands_str(ID)
-    format_commands(commands_str)
-    print(f"commands: {commands}")
-    ac.prepare_syringe()
-    time.sleep(5)
-    dead_weight = 0
-    for i in range(len(commands)):
-        if commands[i][0] == 'lof':
-            syringe_weight_actual = loadf(commands[i][1])
-            if i + 1 < len(commands)
-                commands[i+1][1][1] = loadf(commands[i][1])
+#     ac.prepare_syringe()
+#     time.sleep(5)
+    global bounce_durations
+    old_time = datetime.now()
+    bounce_durations = []
+    while True:
+        commands_str = nm.get_commands()
+        bounce_durations.append((datetime.now() - old_time).seconds)
+        print(f"time taken: {(datetime.now() - old_time).seconds}")
+        old_time = datetime.now()
+        time.sleep(1)
+        format_commands(commands_str)
+#         print(f"commands: {commands}")
+        for i in range(len(commands)):
+            if commands[i][0] == 'lof':
+#                 syringe_weight_actual, dead_weight = loadf(commands[i][1])
+                syringe_weight_actual = commands[i][1][1] - commands[i][1][0]
+                dead_weight = 0.8
+                nm.send_result(f"{syringe_weight_actual} {dead_weight}")
+#                 print(f"sent: {syringe_weight_actual} {dead_weight}")
             
 def destroy():
+    global bounce_durations
+    durations_count = [0,0,0,0,0]
+    for duration in bounce_durations:
+        if duration >= 24:
+            durations_count[4] += 1
+        elif duration >= 12:
+            durations_count[3] += 1
+        elif duration >= 6:
+            durations_count[2] += 1
+        elif duration > 3:
+            durations_count[1] += 1
+        else:
+            durations_count[0] += 1
+    print(f"durations count: {durations_count}")
     ac.destroy()
 
+setup()
 try:
     run_commands()
-except KeyboardInterrupt:
+except:
     destroy()
 #     mc.start_travel(command[0], command[1])
 
