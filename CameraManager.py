@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 
 weights = []
+is_image_shown = False
 
 def makeBW(x):
     thresh = 55
@@ -49,13 +50,13 @@ def log_time(log):
         old_time = datetime.now()
 
 def get_weight():
-    digits = None
+    result = None
+    old_result = None
     global stream
     global camera
     global old_time
     global image
-    is_image_shown = False
-    is_warning_shown = False
+    global is_image_shown
     while True:
         old_time = datetime.now()
         stream.seek(0)
@@ -70,19 +71,19 @@ def get_weight():
     #     img = img.filter(ImageFilter.MinFilter(size=1))
         log_time('process')
 
-
-        digits = ocr.read_scale(img)
+        result = ocr.read_scale(img)
+        if isinstance(result, str):
+            if result != old_result:
+                print(f"result of scale is {result}")
+        else:
+            break
+        old_result = result
         log_time('read')
-        # to see what is happenning with the boxes, or to adjust, uncomment following line
-        if __name__ == "__main__" and not is_image_shown:
-            is_image_shown = True
-            ocr.show_boxes(img)
-            img.show()
-            if digits is not None:
-                digits/100
-            return digits
-        elif digits is not None:
-            return digits/100
+    if __name__ == "__main__" and not is_image_shown:
+        is_image_shown = True
+        ocr.show_boxes(img)
+        img.show()
+    return result/100
 
 setup()
 
@@ -90,9 +91,8 @@ if __name__ == "__main__":
     time_log = ""
     start_time = datetime.now()
     try:
-#         while True:
-        weights.append(get_weight())
-        print(weights)
+        while True:
+            print(get_weight())
     except KeyboardInterrupt:
         plot(weights)
     

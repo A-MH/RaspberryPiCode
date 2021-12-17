@@ -1,10 +1,3 @@
-#!/usr/bin/env python3
-########################################################################
-# Filename    : BreathingLED.py
-# Description : Breathing LED
-# Author      : www.freenove.com
-# modification: 2019/12/27
-########################################################################
 import math
 import RPi.GPIO as GPIO
 from datetime import datetime

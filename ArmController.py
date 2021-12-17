@@ -25,7 +25,8 @@ def setup():
         GPIO.output(value[0], GPIO.LOW)
         GPIO.setup(value[1], GPIO.OUT)
         GPIO.output(value[1], GPIO.LOW)
-
+        
+# This is a test fuction
 def prepare_syringe():
     enable_magnet()
     global syringe_weight_full
@@ -34,6 +35,7 @@ def prepare_syringe():
     disable_magnet()
     retract(100, 5)
 
+# this is a test function
 def on_press(key):
     global syringe_weight_full
     if (key == keyboard.Key.down):
@@ -75,7 +77,13 @@ def extend_test(pwm):
     GPIO.output(in_values['arm'][0], GPIO.LOW)
     GPIO.output(in_values['arm'][1], GPIO.HIGH)
 
-def extend(syringe_weight = None, duration = None):
+def extend(duration):
+    GPIO.output(in_values['arm'][0], GPIO.LOW)
+    GPIO.output(in_values['arm'][1], GPIO.HIGH)
+    time.sleep(duration)
+    GPIO.output(in_values['arm'][1], GPIO.LOW)
+    
+def extend_f(syringe_weight = None, duration = None):
     global duration_limits
     global syringe_weight_full
     duration_limits = [1.7, 4.7]
@@ -94,7 +102,7 @@ def retract(pwm, duration = 0):
     GPIO.output(in_values['arm'][1], GPIO.LOW)
     time.sleep(duration)
     
-def loadf(target_amount):
+def load_f(target_amount):
     global download_rate
     if target_amount <= 0.1:
         pwm_pin.ChangeDutyCycle(20)

@@ -11,7 +11,8 @@ from datetime import datetime
 ID = 1
 
 def setup():
-    nm.setup_connection(ID)
+#     nm.setup_connection(ID)
+    pass
 
 def format_commands(command_str):
     global commands
@@ -44,7 +45,57 @@ def format_commands(command_str):
         else:
            parameter += char
 
-def loadf(parameters, dead_weight):
+def run_commands():
+#     ac.prepare_syringe()
+#     time.sleep(5)
+    global bounce_durations
+    global commands
+    old_time = datetime.now()
+    bounce_durations = []
+    while True:
+#         commands_str = nm.get_commands()
+        commands_str = "loadpg 5-"
+        bounce_durations.append((datetime.now() - old_time).seconds)
+        print(f"time taken: {(datetime.now() - old_time).seconds}")
+        old_time = datetime.now()
+        time.sleep(1)
+        format_commands(commands_str)
+        print(f"commands: {commands}")
+        for i in range(len(commands)):
+            command_type = commands[i][0]
+            if command_type == 'loadf':
+                syringe_weight_actual, dead_weight = load_f(commands[i][1])
+#                 syringe_weight_actual = commands[i][1][1] - commands[i][1][0]
+#                 dead_weight = 0.8
+                nm.send_result(f"{syringe_weight_actual} {dead_weight}")
+#                 print(f"sent: {syringe_weight_actual} {dead_weight}")
+            elif command_type == 'loadvg' or command_type == 'loadpg':
+                result = load_b(command_type, commands[i][1])
+                nm.send_result(result);
+        break
+            
+def load_b(command_type, amount):
+    print("loading b")
+    extend_duration = 0.8
+    flow_rate = 2 # assuming it is PG initially
+    if command_type == "loadvg": # if it's VG, then adjust flowrate
+        flow_rate = 1.5
+    amount_added = 0
+    orig_weight = 0
+    while amount_added < 0.95 * amount:
+        load_time = (amount - amount_added) / flow_rate
+        ac.extend(extend_duration)
+        time.sleep(load_time)
+        ac.retract(100, extend_duration + 0.2)
+        amount_added = 10
+        if amount_added/amount > 1.2:
+            print(f"too much {command_type[-2:]} added, {amount_added*100/amount - 100}% extra added")
+        elif amount_added/amount < 0.95:
+            print(f"too little {command_type[-2:]} added, {amount_added*100/amount}% filled")
+    print(f"{amount_added}g added. target: {amount}g")
+    return "ok"
+    
+def load_f(parameters, dead_weight):
     dead_weight = 0
     target_weight = parameters[1][0]
     print(f"\ntarget weight: {target_weight}")
@@ -52,16 +103,16 @@ def loadf(parameters, dead_weight):
     orig_weight = cm.get_weight()
     curr_weight_adjusted = 0
     ac.enable_magnet()
-    ac.extend(syringe_weight=syringe_weight + dead_weight)
+    ac.extend_f(syringe_weight=syringe_weight + dead_weight)
     if target_weight <= 0.1:
-        ac.extend(duration=0.2)
+        ac.extend_f(duration=0.2)
         dead_weight += 1.05
         wasted_pull = 0.6
     else:
         wasted_pull = 0.4
     while target_weight > 0.1 and curr_weight_adjusted < round(target_weight * 0.95, 2) or\
           target_weight <= 0.1 and curr_weight_adjusted < round(target_weight * 0.8, 2):
-        ac.loadf(target_weight - curr_weight_adjusted + wasted_pull)
+        ac.load_f(target_weight - curr_weight_adjusted + wasted_pull)
         wasted_pull = 0
         if target_weight - curr_weight_adjusted <= 0.1:
             if target_weight - curr_weight_adjusted <= 0.03:
@@ -80,28 +131,6 @@ def loadf(parameters, dead_weight):
     return (syringe_weight - curr_weight_adjusted, dead_weight)
     
 
-def run_commands():
-#     ac.prepare_syringe()
-#     time.sleep(5)
-    global bounce_durations
-    old_time = datetime.now()
-    bounce_durations = []
-    while True:
-        commands_str = nm.get_commands()
-        bounce_durations.append((datetime.now() - old_time).seconds)
-        print(f"time taken: {(datetime.now() - old_time).seconds}")
-        old_time = datetime.now()
-        time.sleep(1)
-        format_commands(commands_str)
-#         print(f"commands: {commands}")
-        for i in range(len(commands)):
-            if commands[i][0] == 'lof':
-#                 syringe_weight_actual, dead_weight = loadf(commands[i][1])
-                syringe_weight_actual = commands[i][1][1] - commands[i][1][0]
-                dead_weight = 0.8
-                nm.send_result(f"{syringe_weight_actual} {dead_weight}")
-#                 print(f"sent: {syringe_weight_actual} {dead_weight}")
-            
 def destroy():
     global bounce_durations
     durations_count = [0,0,0,0,0]
