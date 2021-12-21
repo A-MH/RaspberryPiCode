@@ -54,7 +54,7 @@ def run_commands():
     bounce_durations = []
     while True:
 #         commands_str = nm.get_commands()
-        commands_str = "loadpg 5-"
+        commands_str = "loadpg 10-"
         bounce_durations.append((datetime.now() - old_time).seconds)
         print(f"time taken: {(datetime.now() - old_time).seconds}")
         old_time = datetime.now()
@@ -76,20 +76,23 @@ def run_commands():
             
 def load_b(command_type, amount):
     print("loading b")
-    extend_duration = 0.8
-    flow_rate = 2 # assuming it is PG initially
+    extend_duration = 0.73
+    flow_rate = 6.8 # assuming it is PG initially
     if command_type == "loadvg": # if it's VG, then adjust flowrate
-        flow_rate = 1.5
+        flow_rate = 5
     amount_added = 0
-    orig_weight = 0
+    orig_weight = cm.get_weight()
+    min_amount = 0.62
     while amount_added < 0.95 * amount:
-        load_time = (amount - amount_added) / flow_rate
+        load_time = (amount - amount_added - min_amount) / flow_rate 
+        load_time = 0 if load_time < 0 else load_time
+        print(load_time)
         ac.extend(extend_duration)
         time.sleep(load_time)
         ac.retract(100, extend_duration + 0.2)
-        amount_added = 10
+        amount_added = cm.get_weight() - orig_weight
         if amount_added/amount > 1.2:
-            print(f"too much {command_type[-2:]} added, {amount_added*100/amount - 100}% extra added")
+            print(f"too much {command_type[-2:]} added, {amount_added*100/amount}% added")
         elif amount_added/amount < 0.95:
             print(f"too little {command_type[-2:]} added, {amount_added*100/amount}% filled")
     print(f"{amount_added}g added. target: {amount}g")

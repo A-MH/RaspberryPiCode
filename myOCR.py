@@ -152,7 +152,7 @@ def read_scale(img):
             pixel_value = img.getpixel(tuple(chosen_pixels[i][j]))
             if i == 0 and not (j == 2 or j == 3) and pixel_value == 0:
                 print("calibrating")
-#                 calibrate(img)
+                calibrate(img)
                 return "calibrated"
             segments[j] = 1 if pixel_value == 0 else 0
         digit = workout_digit(segments)

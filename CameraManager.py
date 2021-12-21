@@ -32,7 +32,7 @@ def setup():
     camera = PiCamera()
     camera.resolution = (640, 480)
     camera.rotation = 180
-#     camera.start_preview(fullscreen=False, window=(0, 0, 640, 480))
+    camera.start_preview(fullscreen=False, window=(500, 500, 640, 480))
     sleep(2)
     
 def log_time(log):
@@ -72,13 +72,13 @@ def get_weight():
         log_time('process')
 
         result = ocr.read_scale(img)
+        log_time('read')
         if isinstance(result, str):
             if result != old_result:
                 print(f"result of scale is {result}")
         else:
             break
         old_result = result
-        log_time('read')
     if __name__ == "__main__" and not is_image_shown:
         is_image_shown = True
         ocr.show_boxes(img)
