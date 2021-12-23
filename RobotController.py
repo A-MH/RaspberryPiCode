@@ -5,6 +5,7 @@ import NetworkManager as nm
 import MotorController as mc
 import CameraManager as cm
 import ArmController as ac
+import LiftController as lf
 import time
 from datetime import datetime
 
@@ -133,6 +134,15 @@ def load_f(parameters, dead_weight):
     time.sleep(ac.duration_limits[1])
     return (syringe_weight - curr_weight_adjusted, dead_weight)
     
+def refill(syringe_weight, dead_weight):
+    # first get the weight of concentrate container
+    container_weight = 0 # weight of empty container
+    conc_weight = cm.get_weight() - container_weight # weight of concentrate
+    # bring container in contact with syringe tip
+    wait_time_phase1 = extend(conc_weight)
+    ac.extend_f
+    
+
 
 def destroy():
     global bounce_durations

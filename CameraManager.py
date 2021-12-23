@@ -70,7 +70,7 @@ def get_weight():
     #     img = img.filter(ImageFilter.MaxFilter(size=1))
     #     img = img.filter(ImageFilter.MinFilter(size=1))
         log_time('process')
-
+        
         result = ocr.read_scale(img)
         log_time('read')
         if isinstance(result, str):

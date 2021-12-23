@@ -2,14 +2,14 @@ from PIL import ImageDraw
 import pickle
 
 chosen_pixels = [
-[[23, 228], [60, 210], [96, 229], [90, 295], [60, 326], [40, 295], [60, 261]],
-[[143, 226],[164, 190],[193, 227],[186, 295],[153, 326],[130, 294],[161, 261]],
-[[250, 222],[280, 194],[301, 228],[297, 289],[268, 323],[242, 294],[272, 259]],
-[[342, 225],[369, 195],[394, 225],[393, 290],[364, 320],[339, 286],[367, 257]],
-[[436, 215],[464, 191],[490, 216],[490, 281],[462, 317],[434, 282],[462, 253]],
+[[65, 208], [100, 180], [125, 209], [120, 275], [80, 270], [60, 270], [90, 240]],
+[[163, 206],[184, 170],[213, 207],[206, 275],[173, 276],[150, 274],[181, 241]],
+[[270, 202],[300, 174],[321, 208],[318, 259],[288, 273],[262, 274],[292, 239]],
+[[352, 205],[379, 175],[404, 205],[403, 260],[384, 270],[359, 276],[387, 237]],
+[[446, 205],[484, 181],[500, 206],[500, 271],[482, 287],[454, 272],[472, 243]],
 ]
 
-power_pixel = [20, 200]
+power_pixel = [20, 150]
 
 digits_array = [
 [1,1,1,1,1,1,0],
@@ -60,6 +60,7 @@ def calibrate(img):
             # if we are outside the segment, move the pixel to the inside                
             if img.getpixel(tuple(chosen_pixels[i][j])) == 255:
                 # if segment is vertical
+                print(f"digit: {i}, segment: {j}")
                 if j == 0 or j == 2 or j == 3 or j == 5:
                     # work out the distance from left edge of segment to chosen pixel
                     distance = 1
@@ -87,7 +88,6 @@ def calibrate(img):
                         distance += 1
                 # if segment is horizontal
                 else:
-                    print(i, j)
                     # work out the distance from top edge of segment to chosen pixel
                     distance = 1
                     top_limit_reached = False

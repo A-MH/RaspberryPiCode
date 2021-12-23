@@ -1,9 +1,10 @@
 import math
+import RobotSpecific as rs
 import RPi.GPIO as GPIO
 import time
 from pynput import keyboard
-import  CameraManager as cm
 from datetime import datetime
+
 
 en_arm = 5
 in_values = {"arm": [6, 13], "e-magnet": [19, 26]}
@@ -11,20 +12,30 @@ pwm_pin = None
 
 syringe_weight_full = 23
 download_rate = 4.6 # this value depends on viscosity and pwm
-upload_rate = None # TODO: workout this value
 
 def setup():
-    print('setting up')
+    print('setting up ArmController')
+    if __name__ == '__main__':
+        GPIO.setmode(GPIO.BCM)
     global pwm_pin
-    global pwm_value
+    global en_arm
+    global in_values
+    if rs.robot_type == "filler":
+        en_arm = 9
+        in_values = {"arm": [10, 11], "e-magnet": [19, 26]}
     GPIO.setup(en_arm, GPIO.OUT) 
     pwm_pin = GPIO.PWM(en_arm, 100)
     pwm_pin.start(100)
     for key, value in in_values.items():
         GPIO.setup(value[0], GPIO.OUT)
-        GPIO.output(value[0], GPIO.LOW)
         GPIO.setup(value[1], GPIO.OUT)
-        GPIO.output(value[1], GPIO.LOW)
+        # if it is the magnet pin and robot is filler, then magnet is using the simple mosfet
+        if key == "e-magnet" and rs.robot_type == "filler":
+            GPIO.output(value[0], GPIO.HIGH) # this is vcc and should be high
+            GPIO.output(value[1], GPIO.LOW)
+        else:
+            GPIO.output(value[0], GPIO.LOW)
+            GPIO.output(value[1], GPIO.LOW)
         
 # This is a test fuction
 def prepare_syringe():
@@ -42,17 +53,14 @@ def on_press(key):
         retract(100)
     elif (key == keyboard.Key.up):
         time.sleep(2)
-        extend(syringe_weight_full + 5)
-        retract(40)
-#         extend(0)
+        extend(2)
     elif (key == keyboard.Key.left):
         print("magnet activated")
-        GPIO.output(in_values['e-magnet'][0], GPIO.HIGH)
+        GPIO.output(in_values['e-magnet'][1], GPIO.HIGH)
     elif key == keyboard.Key.right: 
         print("all deactivated")
         GPIO.output(in_values['arm'][0], GPIO.LOW)
         GPIO.output(in_values['arm'][1], GPIO.LOW)
-        GPIO.output(in_values['e-magnet'][0], GPIO.LOW)
         GPIO.output(in_values['e-magnet'][1], GPIO.LOW)
     elif (key==keyboard.Key.space):
         for key, value in in_values.items():
@@ -63,11 +71,11 @@ def on_press(key):
         
 def enable_magnet():
     print("magnet activated" )
-    GPIO.output(in_values['e-magnet'][0], GPIO.HIGH)
+    GPIO.output(in_values['e-magnet'][1], GPIO.HIGH)
     
 def disable_magnet():
     print("magnet deactivated" )
-    GPIO.output(in_values['e-magnet'][0], GPIO.LOW)
+    GPIO.output(in_values['e-magnet'][1], GPIO.LOW)
 
 def extend_test(pwm):
     global old_time
@@ -100,7 +108,7 @@ def retract(pwm, duration = 0):
     pwm_pin.ChangeDutyCycle(pwm)
     GPIO.output(in_values['arm'][0], GPIO.HIGH)
     GPIO.output(in_values['arm'][1], GPIO.LOW)
-    time.sleep(duration)
+#     time.sleep(duration)
     
 def load_f(target_amount):
     global download_rate
@@ -127,12 +135,11 @@ def destroy():
     pwm_pin.stop()
     GPIO.cleanup() # Release all GPIO
      
-         
+# CAUTION: THIS SHOULD COME BEFORE NAME == MAIN
+setup()
+
 if __name__ == '__main__':     # Program entrance
-    GPIO.setmode(GPIO.BCM)
     # Collect events in a non-blocking fashion:
     listener = keyboard.Listener(
         on_press=on_press)
     listener.start()
-
-setup()
