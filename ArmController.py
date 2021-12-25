@@ -11,7 +11,6 @@ in_values = {"arm": [6, 13], "e-magnet": [19, 26]}
 pwm_pin = None
 
 syringe_weight_full = 23
-download_rate = 4.6 # this value depends on viscosity and pwm
 
 def setup():
     print('setting up ArmController')
@@ -53,7 +52,9 @@ def on_press(key):
         retract(100)
     elif (key == keyboard.Key.up):
         time.sleep(2)
-        extend(2)
+        sleep_time = extend(syringe_weight=0)
+        time.sleep(sleep_time)
+        stop_arm()
     elif (key == keyboard.Key.left):
         print("magnet activated")
         GPIO.output(in_values['e-magnet'][1], GPIO.HIGH)
@@ -84,46 +85,46 @@ def extend_test(pwm):
     old_time = datetime.now()
     GPIO.output(in_values['arm'][0], GPIO.LOW)
     GPIO.output(in_values['arm'][1], GPIO.HIGH)
-
-def extend(duration):
-    GPIO.output(in_values['arm'][0], GPIO.LOW)
-    GPIO.output(in_values['arm'][1], GPIO.HIGH)
-    time.sleep(duration)
-    GPIO.output(in_values['arm'][1], GPIO.LOW)
     
-def extend_f(syringe_weight = None, duration = None):
-    global duration_limits
-    global syringe_weight_full
+def extend(syringe_weight = None, pwm = 100):
     duration_limits = [1.7, 4.7]
     print('extending')
-    pwm_pin.ChangeDutyCycle(100)
+    pwm_pin.ChangeDutyCycle(pwm)
     if syringe_weight is not None:
         duration = ((duration_limits[1] - duration_limits[0]) * syringe_weight / syringe_weight_full + duration_limits[0])
     GPIO.output(in_values['arm'][0], GPIO.LOW)
     GPIO.output(in_values['arm'][1], GPIO.HIGH)
-    time.sleep(duration)
-    GPIO.output(in_values['arm'][1], GPIO.LOW)
+    return duration
+
+def extend_refill(syringe_weight):
+    pwm = 30
+    refill_rate = 6
+    sleep_time = (syringe_weight_full - syringe_weight) / refill_rate
+    pwm_pin.ChangeDutyCycle(pwm)
+    GPIO.output(in_values['arm'][0], GPIO.LOW)
+    GPIO.output(in_values['arm'][1], GPIO.HIGH)
+    return sleep_time, pwm
         
-def retract(pwm, duration = 0):
+def retract(pwm = 100):
     pwm_pin.ChangeDutyCycle(pwm)
     GPIO.output(in_values['arm'][0], GPIO.HIGH)
     GPIO.output(in_values['arm'][1], GPIO.LOW)
-#     time.sleep(duration)
     
-def load_f(target_amount):
-    global download_rate
+def retract_f(target_amount):
+    download_rate = 4.6
     if target_amount <= 0.1:
-        pwm_pin.ChangeDutyCycle(20)
+        retract(20)
     else:
-        pwm_pin.ChangeDutyCycle(30)
-    GPIO.output(in_values['arm'][0], GPIO.HIGH)
-    GPIO.output(in_values['arm'][1], GPIO.LOW)
+        retract(30)
     sleep_time = target_amount / download_rate
     if sleep_time < 0.05:
         sleep_time = 0.05
-    time.sleep(sleep_time)
-    GPIO.output(in_values['arm'][0], GPIO.LOW)
+    return sleep_time
     
+def stop_arm():
+    GPIO.output(in_values['arm'][0], GPIO.LOW)
+    GPIO.output(in_values['arm'][1], GPIO.LOW)
+
 def destroy():
 #     global old_time
 #     print(f'time taken: {(datetime.now() - old_time).seconds}.{(datetime.now() - old_time).microseconds}')

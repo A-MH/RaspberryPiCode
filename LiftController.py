@@ -7,9 +7,6 @@ en = 13
 in_values = [6, 5]
 pwm_pin = None
 
-syringe_weight_full = 23
-refill_rate = 4.6 # this value depends on viscosity and pwm
-
 def setup():
     if __name__ == "__main__":
         GPIO.setmode(GPIO.BCM)
@@ -23,21 +20,42 @@ def setup():
     GPIO.setup(in_values[1], GPIO.OUT)
     GPIO.output(in_values[1], GPIO.LOW)
 
-def extend(pwm):
+def extend_phase1(conc_weight):
+    conc_weight_full = 94
+    gram_per_second = 15
+    dead_space_duration = 1
+    sleep_time = dead_space_duration + (conc_weight_full - conc_weight) / gram_per_second
+    pwm_pin.ChangeDutyCycle(100)
+    GPIO.output(in_values[1], GPIO.HIGH)
+    GPIO.output(in_values[0], GPIO.LOW)
+    return sleep_time
+    
+def extend_phase2(refill_pwm):
+    ratio = 0.5
+    pwm = refill_pwm * ratio
     pwm_pin.ChangeDutyCycle(pwm)
     GPIO.output(in_values[1], GPIO.HIGH)
     GPIO.output(in_values[0], GPIO.LOW)
 
-def retract(pwm):
+def retract(pwm = 100):
     pwm_pin.ChangeDutyCycle(pwm)
     GPIO.output(in_values[0], GPIO.HIGH)
     GPIO.output(in_values[1], GPIO.LOW)
     
-# when the actuator reaches its maximum extension or minim extension, it will automatically deactivate the arm, but we still do it manually just in case
+def stop_lift():
+    pwm_pin.ChangeDutyCycle(0)
+    GPIO.output(in_values[0], GPIO.LOW)
+    GPIO.output(in_values[1], GPIO.LOW)
+    
+# when the actuator reaches its maximum extension or minim extension, it will automatically deactivate the arm,
+#but we still do it manually just in case
 def deactivate():
     GPIO.output(in_values[0], GPIO.HIGH)
     GPIO.output(in_values[1], GPIO.LOW)
 
 setup()
-retract(100)
+
+if __name__ == "__main__":
+    retract(100)
+# extend(100)
     
