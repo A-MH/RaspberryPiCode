@@ -79,11 +79,13 @@ def get_weight():
         else:
             break
         old_result = result
+#         break
     if __name__ == "__main__" and not is_image_shown:
         is_image_shown = True
         ocr.show_boxes(img)
         img.show()
-    return result/100
+    result_gram = result/100
+    return result_gram
 
 setup()
 

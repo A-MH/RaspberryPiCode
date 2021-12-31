@@ -47,12 +47,11 @@ def prepare_syringe():
 
 # this is a test function
 def on_press(key):
-    global syringe_weight_full
     if (key == keyboard.Key.down):
         retract(100)
     elif (key == keyboard.Key.up):
         time.sleep(2)
-        sleep_time = extend(syringe_weight=0)
+        sleep_time = extend(syringe_weight=20)
         time.sleep(sleep_time)
         stop_arm()
     elif (key == keyboard.Key.left):
@@ -96,10 +95,10 @@ def extend(syringe_weight = None, pwm = 100):
     GPIO.output(in_values['arm'][1], GPIO.HIGH)
     return duration
 
-def extend_refill(syringe_weight):
+def extend_refill(syringe_weight, conc_percentage_available):
     pwm = 30
-    refill_rate = 6
-    sleep_time = (syringe_weight_full - syringe_weight) / refill_rate
+    refill_rate = 7
+    sleep_time = (syringe_weight_full - syringe_weight) * conc_percentage_available / refill_rate
     pwm_pin.ChangeDutyCycle(pwm)
     GPIO.output(in_values['arm'][0], GPIO.LOW)
     GPIO.output(in_values['arm'][1], GPIO.HIGH)

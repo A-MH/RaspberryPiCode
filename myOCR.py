@@ -1,13 +1,6 @@
 from PIL import ImageDraw
 import pickle
-
-chosen_pixels = [
-[[65, 208], [100, 180], [125, 209], [120, 275], [80, 270], [60, 270], [90, 240]],
-[[163, 206],[184, 170],[213, 207],[206, 275],[173, 276],[150, 274],[181, 241]],
-[[270, 202],[300, 174],[321, 208],[318, 259],[288, 273],[262, 274],[292, 239]],
-[[352, 205],[379, 175],[404, 205],[403, 260],[384, 270],[359, 276],[387, 237]],
-[[446, 205],[484, 181],[500, 206],[500, 271],[482, 287],[454, 272],[472, 243]],
-]
+import RobotSpecific as rs
 
 power_pixel = [20, 150]
 
@@ -31,6 +24,7 @@ def setup():
             chosen_pixels = pickle.load(file_handle)
     except FileNotFoundError:
         print('OCR calibration file not found, new file created with default values')
+        chosen_pixels = rs.chosen_pixels
         with open('OCR calibration.data', 'wb') as file_handle:
             # store the data as binary data stream
             pickle.dump(chosen_pixels, file_handle)

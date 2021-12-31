@@ -57,7 +57,7 @@ def run_commands():
 #         commands_str = nm.get_commands()
         commands_str = "refill 0 0-"
         bounce_durations.append((datetime.now() - old_time).seconds)
-        print(f"time taken: {(datetime.now() - old_time).seconds}")
+#         print(f"time taken: {(datetime.now() - old_time).seconds}")
         old_time = datetime.now()
         time.sleep(1)
         format_commands(commands_str)
@@ -145,9 +145,12 @@ def load_f(parameters, dead_weight):
     return (syringe_weight - curr_weight_adjusted, dead_weight)
     
 def refill(syringe_weight, dead_weight):
-    container_weight = 12.3 # weight of empty container
-    conc_weight = cm.get_weight() - container_weight # weight of concentrate
-#     conc_weight = 90 # weight of concentrate
+    container_weight = 15 # weight of empty container
+#     conc_weight = cm.get_weight() - container_weight # weight of concentrate
+    conc_weight = 93 - container_weight # weight of concentrate
+    print(f"conc weight before load: {conc_weight}")
+    conc_weight_unavailabe = 7
+    conc_percentage_available = 1 - conc_weight_unavailabe / conc_weight
     # bring container in contact with syringe tip
     sleep_time_phase1_lift = lc.extend_phase1(conc_weight)
     sleep_time_phase1_arm = ac.extend(syringe_weight=syringe_weight)
@@ -162,19 +165,16 @@ def refill(syringe_weight, dead_weight):
         ac.stop_arm()
         time.sleep(sleep_time_phase1_lift - sleep_time_phase1_arm)
         lc.stop_lift()
-    print("refill phase 1 complete")
     ac.enable_magnet()
-    sleep_time, refill_pwm = ac.extend_refill(syringe_weight=syringe_weight)
+    sleep_time, refill_pwm = ac.extend_refill(syringe_weight, conc_percentage_available)
     lc.extend_phase2(refill_pwm)
-    print(f"phase 2 sleep: {sleep_time}s")
     time.sleep(sleep_time)
     ac.disable_magnet()
     lc.stop_lift()
-    print("refill phase 2 complete")
     ac.retract()
     lc.retract()
     time.sleep(5)
-    print("retraction complete")
+    print(f" container weight after load: {cm.get_weight()}")
 
 def destroy():
     global bounce_durations

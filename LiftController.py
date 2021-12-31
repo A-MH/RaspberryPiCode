@@ -20,18 +20,23 @@ def setup():
     GPIO.setup(in_values[1], GPIO.OUT)
     GPIO.output(in_values[1], GPIO.LOW)
 
+def extend_test():
+    GPIO.output(in_values[1], GPIO.HIGH)
+    GPIO.output(in_values[0], GPIO.LOW)
+    return sleep_time
+
 def extend_phase1(conc_weight):
-    conc_weight_full = 94
-    gram_per_second = 15
-    dead_space_duration = 1
-    sleep_time = dead_space_duration + (conc_weight_full - conc_weight) / gram_per_second
+    conc_weight_full = 90
+    gram_per_second = 25
+    pre_engagement_duration = 1.8
+    sleep_time = pre_engagement_duration + (conc_weight_full - conc_weight) / gram_per_second
     pwm_pin.ChangeDutyCycle(100)
     GPIO.output(in_values[1], GPIO.HIGH)
     GPIO.output(in_values[0], GPIO.LOW)
     return sleep_time
     
 def extend_phase2(refill_pwm):
-    ratio = 0.5
+    ratio = 0.37
     pwm = refill_pwm * ratio
     pwm_pin.ChangeDutyCycle(pwm)
     GPIO.output(in_values[1], GPIO.HIGH)
@@ -56,6 +61,10 @@ def deactivate():
 setup()
 
 if __name__ == "__main__":
-    retract(100)
+    retract()
+#     extend_test()
+#     time.sleep(extend_phase1(67.4))
+#     stop_lift()
+    
 # extend(100)
     
