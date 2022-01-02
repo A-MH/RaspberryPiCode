@@ -20,8 +20,8 @@ def setup():
     global en_arm
     global in_values
     if rs.robot_type == "filler":
-        en_arm = 9
-        in_values = {"arm": [10, 11], "e-magnet": [19, 26]}
+        en_arm = 10
+        in_values = {"arm": [9, 11], "e-magnet": [19, 26]}
     GPIO.setup(en_arm, GPIO.OUT) 
     pwm_pin = GPIO.PWM(en_arm, 100)
     pwm_pin.start(100)
@@ -51,7 +51,7 @@ def on_press(key):
         retract(100)
     elif (key == keyboard.Key.up):
         time.sleep(2)
-        sleep_time = extend(syringe_weight=0)
+        sleep_time = extend(syringe_weight=20)
         time.sleep(sleep_time)
         stop_arm()
     elif (key == keyboard.Key.left):
@@ -86,9 +86,8 @@ def extend_test(pwm):
     GPIO.output(in_values['arm'][1], GPIO.HIGH)
     
 def extend(syringe_weight = None, pwm = 100):
-    duration_limits = [1.5, 5]
-    print('extending')
-    pwm_pin.ChangeDutyCycle(pwm)
+    duration_limits = [1.5, 5.2]
+    pwm_pin.ChangeDutyCycle(pwm * rs.arm_pwm_multiplier)
     if syringe_weight is not None:
         duration = ((duration_limits[1] - duration_limits[0]) * syringe_weight / syringe_weight_full + duration_limits[0])
     GPIO.output(in_values['arm'][0], GPIO.LOW)
