@@ -9,10 +9,8 @@ import LiftController as lc
 import time
 from datetime import datetime
 
-ID = 1
-
 def setup():
-#     nm.setup_connection(ID)
+#     nm.setup_connection(rs.ID)
     pass
 
 def format_commands(command_str):
@@ -146,11 +144,13 @@ def load_f(parameters, dead_weight):
     
 def refill(syringe_weight, dead_weight):
     container_weight = 15 # weight of empty container
-#     conc_weight = cm.get_weight() - container_weight # weight of concentrate
-    conc_weight = 93 - container_weight # weight of concentrate
+    conc_weight = cm.get_weight() - container_weight # weight of concentrate
+#     conc_weight = 93 - container_weight # weight of concentrate
     print(f"conc weight before load: {conc_weight}")
     conc_weight_unavailabe = 7
-    conc_percentage_available = 1 - conc_weight_unavailabe / conc_weight
+    conc_percentage_available = 1
+    if conc_weight < ac.syringe_weight_full - syringe_weight:
+        conc_percentage_available = 1 - conc_weight_unavailabe / conc_weight
     # bring container in contact with syringe tip
     sleep_time_phase1_lift = lc.extend_phase1(conc_weight)
     sleep_time_phase1_arm = ac.extend(syringe_weight=syringe_weight)
@@ -166,15 +166,15 @@ def refill(syringe_weight, dead_weight):
         time.sleep(sleep_time_phase1_lift - sleep_time_phase1_arm)
         lc.stop_lift()
     ac.enable_magnet()
-    sleep_time, refill_pwm = ac.extend_refill(syringe_weight, conc_percentage_available)
-    lc.extend_phase2(refill_pwm)
+    sleep_time = ac.extend_refill(syringe_weight, conc_percentage_available)
+    lc.extend_phase2()
     time.sleep(sleep_time)
     ac.disable_magnet()
     lc.stop_lift()
     ac.retract()
     lc.retract()
     time.sleep(5)
-    print(f" container weight after load: {cm.get_weight()}")
+    print(f"conc weight after load: {cm.get_weight() - container_weight}")
 
 def destroy():
     global bounce_durations

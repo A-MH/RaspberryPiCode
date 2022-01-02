@@ -35,9 +35,9 @@ def extend_phase1(conc_weight):
     GPIO.output(in_values[0], GPIO.LOW)
     return sleep_time
     
-def extend_phase2(refill_pwm):
-    ratio = 0.37
-    pwm = refill_pwm * ratio
+def extend_phase2():
+    ratio = 0.12
+    pwm = 100 * ratio
     pwm_pin.ChangeDutyCycle(pwm)
     GPIO.output(in_values[1], GPIO.HIGH)
     GPIO.output(in_values[0], GPIO.LOW)
