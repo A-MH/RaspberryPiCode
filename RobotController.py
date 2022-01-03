@@ -144,8 +144,8 @@ def load_f(parameters, dead_weight):
     
 def refill(syringe_weight, dead_weight):
     container_weight = 15 # weight of empty container
-    conc_weight = cm.get_weight() - container_weight # weight of concentrate
-#     conc_weight = 93 - container_weight # weight of concentrate
+#     conc_weight = cm.get_weight() - container_weight # weight of concentrate
+    conc_weight = 94.24 - container_weight # weight of concentrate
     print(f"conc weight before load: {conc_weight}")
     conc_weight_unavailabe = 7
     conc_percentage_available = 1
@@ -174,7 +174,7 @@ def refill(syringe_weight, dead_weight):
     ac.retract()
     lc.retract()
     time.sleep(5)
-    print(f"conc weight after load: {cm.get_weight() - container_weight}")
+#     print(f"conc weight after load: {cm.get_weight() - container_weight}")
 
 def destroy():
     global bounce_durations
