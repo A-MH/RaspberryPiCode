@@ -86,7 +86,7 @@ def extend_test(pwm):
     GPIO.output(in_values['arm'][1], GPIO.HIGH)
     
 def extend(syringe_weight = None, pwm = 100):
-    duration_limits = [1.56, 4.62]
+    duration_limits = [1.56, 4.7]
     pwm_pin.ChangeDutyCycle(pwm * rs.arm_pwm_multiplier)
     if syringe_weight is not None:
         duration = (duration_limits[1] - duration_limits[0]) * syringe_weight / syringe_weight_full + duration_limits[0]
