@@ -28,7 +28,7 @@ def extend_test():
 def extend_phase1(conc_weight):
     conc_weight_full = 90
     gram_per_second = 25
-    pre_engagement_duration = 1.8
+    pre_engagement_duration = 2
     sleep_time = pre_engagement_duration + (conc_weight_full - conc_weight) / gram_per_second
     pwm_pin.ChangeDutyCycle(100)
     GPIO.output(in_values[1], GPIO.HIGH)

@@ -27,8 +27,8 @@ def format_commands(command_str):
                 parameters.append(float(parameter))
             parameter = ''
             char_is_com = False
-        # if character is a dash then following characters are part of command. also the comand parameter pair should be added to commands array
-        elif char == '-':
+        # if character is a semi-colon then following characters are part of command. also the comand parameter pair should be added to commands array
+        elif char == ',':
             parameters.append(float(parameter))
             # if there is only one parameter, then save it as a numerical instead of a list of size one
             if len(parameters) > 1:
@@ -49,11 +49,13 @@ def run_commands():
 #     time.sleep(5)
     global bounce_durations
     global commands
+    syringe_weight = -1
     old_time = datetime.now()
     bounce_durations = []
     while True:
 #         commands_str = nm.get_commands()
-        commands_str = "refill 0 0-"
+#         commands_str = "loadf 5 20.29 0,loadf 5 19.3 0,loadf 5 19.3 0,loadf 4 19.3 0,"
+        commands_str = "refill 0 0,"
         bounce_durations.append((datetime.now() - old_time).seconds)
 #         print(f"time taken: {(datetime.now() - old_time).seconds}")
         old_time = datetime.now()
@@ -63,10 +65,14 @@ def run_commands():
         for i in range(len(commands)):
             command_type = commands[i][0]
             if command_type == 'loadf':
-                syringe_weight_actual, dead_weight = load_f(commands[i][1])
+                if i == 0:
+                    syringe_weight = commands[i][1][1]
+                print(f"syringe weight actual: {syringe_weight}")
+                actual_loaded, dead_weight = load_f(commands[i][1][0], syringe_weight, commands[i][1][2])
+                syringe_weight -= actual_loaded
 #                 syringe_weight_actual = commands[i][1][1] - commands[i][1][0]
 #                 dead_weight = 0.8
-                nm.send_result(f"{syringe_weight_actual} {dead_weight}")
+#                 nm.send_result(f"{syringe_weight_actual} {dead_weight}")
 #                 print(f"sent: {syringe_weight_actual} {dead_weight}")
             elif command_type == 'loadvg' or command_type == 'loadpg':
                 result = load_b(command_type, commands[i][1])
@@ -101,16 +107,12 @@ def load_b(command_type, amount):
     print(f"{amount_added}g added. target: {amount}g")
     return "ok"
     
-def load_f(parameters, dead_weight):
-    dead_weight = 0
-    target_weight = parameters[1][0]
-    print(f"\ntarget weight: {target_weight}")
-    syringe_weight = parameters[1][1]
+def load_f(target_weight, syringe_weight, dead_weight):
     orig_weight = cm.get_weight()
     curr_weight_adjusted = 0
     ac.enable_magnet()
-    sleep_time = ac.extend(syringe_weight=syringe_weight + dead_weight)
-    time.sleep(sleep_time)
+    sleep_time_extend = ac.extend(syringe_weight=syringe_weight + dead_weight)
+    time.sleep(sleep_time_extend)
     ac.stop_arm()
     if target_weight <= 0.1:
         ac.extend()
@@ -122,7 +124,7 @@ def load_f(parameters, dead_weight):
         wasted_pull = 0.4
     while target_weight > 0.1 and curr_weight_adjusted < round(target_weight * 0.95, 2) or\
           target_weight <= 0.1 and curr_weight_adjusted < round(target_weight * 0.8, 2):
-        sleep_time = ac.retract_f(target_weight - curr_weight_adjusted + wasted_pull)
+        sleep_time = ac.retract_fill(target_weight - curr_weight_adjusted + wasted_pull)
         time.sleep(sleep_time)
         ac.stop_arm()
         wasted_pull = 0
@@ -132,21 +134,20 @@ def load_f(parameters, dead_weight):
             time.sleep(1.5)
         time.sleep(2)
         current_weight = cm.get_weight()
+#         current_weight = target_weight + orig_weight
         curr_weight_adjusted = round(current_weight - orig_weight, 2)
         print(f"current weight: {curr_weight_adjusted}")
     ac.disable_magnet()
     ac.retract(100)
-    current_weight = cm.get_weight()
-    curr_weight_adjusted = round(current_weight - orig_weight, 2)
     print(f'target weight reached: {curr_weight_adjusted}g')
-    time.sleep(ac.duration_limits[1])
-    return (syringe_weight - curr_weight_adjusted, dead_weight)
+    time.sleep(sleep_time_extend)
+    return (curr_weight_adjusted, dead_weight)
     
 def refill(syringe_weight, dead_weight):
     container_weight = 15 # weight of empty container
-#     conc_weight = cm.get_weight() - container_weight # weight of concentrate
-    conc_weight = 94.24 - container_weight # weight of concentrate
-    print(f"conc weight before load: {conc_weight}")
+    conc_weight = cm.get_weight() - container_weight # weight of concentrate
+#     conc_weight = 96.5 - container_weight # weight of concentrate
+    print(f"container weight before load: {conc_weight + container_weight}")
     conc_weight_unavailabe = 7
     conc_percentage_available = 1
     if conc_weight < ac.syringe_weight_full - syringe_weight:
@@ -173,8 +174,8 @@ def refill(syringe_weight, dead_weight):
     lc.stop_lift()
     ac.retract()
     lc.retract()
-    time.sleep(5)
-#     print(f"conc weight after load: {cm.get_weight() - container_weight}")
+    time.sleep(10)
+    print(f"Syringe weight refilled: {conc_weight - cm.get_weight() + container_weight}")
 
 def destroy():
     global bounce_durations

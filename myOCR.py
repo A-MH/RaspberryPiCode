@@ -2,6 +2,7 @@ from PIL import ImageDraw
 import pickle
 import RobotSpecific as rs
 
+calibrate_mode = 'off'
 power_pixel = [20, 150]
 
 digits_array = [
@@ -19,15 +20,23 @@ digits_array = [
 
 def setup():
     global chosen_pixels
-    try:
-        with open('OCR calibration.data', 'rb') as file_handle:
-            chosen_pixels = pickle.load(file_handle)
-    except FileNotFoundError:
-        print('OCR calibration file not found, new file created with default values')
+    global calibrate_mode
+    if calibrate_mode == "manual":
+        print('manual calibration.')
         chosen_pixels = rs.chosen_pixels
         with open('OCR calibration.data', 'wb') as file_handle:
             # store the data as binary data stream
             pickle.dump(chosen_pixels, file_handle)
+    else:
+        try:
+            with open('OCR calibration.data', 'rb') as file_handle:
+                chosen_pixels = pickle.load(file_handle)
+        except FileNotFoundError:
+            print('OCR calibration file not found, new file created.')
+            chosen_pixels = rs.chosen_pixels
+            with open('OCR calibration.data', 'wb') as file_handle:
+                # store the data as binary data stream
+                pickle.dump(chosen_pixels, file_handle)
     
 
 def show_boxes(img):
@@ -52,7 +61,7 @@ def calibrate(img):
     for i in range(5):
         for j in range(7):
             # if we are outside the segment, move the pixel to the inside                
-            if img.getpixel(tuple(chosen_pixels[i][j])) == 255:
+            if img.getpixel(tuple(chosen_pixels[i][j])) == 1:
                 # if segment is vertical
                 print(f"digit: {i}, segment: {j}")
                 if j == 0 or j == 2 or j == 3 or j == 5:
@@ -136,6 +145,7 @@ def calibrate(img):
 def read_scale(img):
     global chosen_pixels
     global power_pixel
+    global calibrate_mode
     digits=0
     # if scale is off, return none
     if img.getpixel((power_pixel[0], power_pixel[1])) == 0:
@@ -144,11 +154,12 @@ def read_scale(img):
         segments = [0,0,0,0,0,0,0]
         for j in range(7):
             pixel_value = img.getpixel(tuple(chosen_pixels[i][j]))
-            if i == 0 and not (j == 2 or j == 3) and pixel_value == 0:
-                print("calibrating")
-                calibrate(img)
-                return "calibrated"
             segments[j] = 1 if pixel_value == 0 else 0
+            if i==0 and j==5 and segments[j] == 1:
+                while not (calibrate_mode == 'auto' or calibrate_mode == 'manual'):
+                    calibrate_mode = input("enter calibration mode (auto/manual):")
+                if calibrate_mode == 'auto':
+                    calibrate(img)
         digit = workout_digit(segments)
         if digit is None:
             return "NaN"
