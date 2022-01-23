@@ -54,8 +54,8 @@ def run_commands():
     bounce_durations = []
     while True:
 #         commands_str = nm.get_commands()
-#         commands_str = "loadf 5 20.29 0,loadf 5 19.3 0,loadf 5 19.3 0,loadf 4 19.3 0,"
-        commands_str = "refill 0 0,"
+        commands_str = "loadf 5 20.05 0,loadf 5 19.3 0,loadf 5 19.3 0,loadf 4 19.3 0,"
+#         commands_str = "refill 0 0,"
         bounce_durations.append((datetime.now() - old_time).seconds)
 #         print(f"time taken: {(datetime.now() - old_time).seconds}")
         old_time = datetime.now()
@@ -144,7 +144,7 @@ def load_f(target_weight, syringe_weight, dead_weight):
     return (curr_weight_adjusted, dead_weight)
     
 def refill(syringe_weight, dead_weight):
-    container_weight = 15 # weight of empty container
+    container_weight = 23.32 # weight of empty container
     conc_weight = cm.get_weight() - container_weight # weight of concentrate
 #     conc_weight = 96.5 - container_weight # weight of concentrate
     print(f"container weight before load: {conc_weight + container_weight}")
@@ -174,7 +174,7 @@ def refill(syringe_weight, dead_weight):
     lc.stop_lift()
     ac.retract()
     lc.retract()
-    time.sleep(10)
+    time.sleep(6)
     print(f"Syringe weight refilled: {conc_weight - cm.get_weight() + container_weight}")
 
 def destroy():
