@@ -6,6 +6,7 @@ import MotorController as mc
 import CameraManager as cm
 import ArmController as ac
 import LiftController as lc
+import RobotSpecific as rs
 import time
 from datetime import datetime
 
@@ -53,23 +54,26 @@ def run_commands():
     old_time = datetime.now()
     bounce_durations = []
     while True:
-#         commands_str = nm.get_commands()
-        commands_str = "loadf 5 20.05 0,loadf 5 19.3 0,loadf 5 19.3 0,loadf 4 19.3 0,"
+        # commands_str = nm.get_commands()
+        commands_str = "loadf 0.05 21 0,loadf 5 19.3 0,loadf 5 19.3 0,"
 #         commands_str = "refill 0 0,"
         bounce_durations.append((datetime.now() - old_time).seconds)
 #         print(f"time taken: {(datetime.now() - old_time).seconds}")
         old_time = datetime.now()
         time.sleep(1)
         format_commands(commands_str)
+        dead_weight = None
         print(f"commands: {commands}")
         for i in range(len(commands)):
             command_type = commands[i][0]
             if command_type == 'loadf':
                 if i == 0:
                     syringe_weight = commands[i][1][1]
+                    dead_weight = commands[i][1][2]
                 print(f"syringe weight actual: {syringe_weight}")
-                actual_loaded, dead_weight = load_f(commands[i][1][0], syringe_weight, commands[i][1][2])
+                actual_loaded, dead_weight = load_f(commands[i][1][0], syringe_weight, dead_weight)
                 syringe_weight -= actual_loaded
+                print(syringe_weight)
 #                 syringe_weight_actual = commands[i][1][1] - commands[i][1][0]
 #                 dead_weight = 0.8
 #                 nm.send_result(f"{syringe_weight_actual} {dead_weight}")
@@ -115,13 +119,13 @@ def load_f(target_weight, syringe_weight, dead_weight):
     time.sleep(sleep_time_extend)
     ac.stop_arm()
     if target_weight <= 0.1:
-        ac.extend()
-        time.sleep(0.2)
+        sleep_time = ac.extend_connected(1)
+        time.sleep(sleep_time)
         ac.stop_arm()
-        dead_weight += 1.05
-        wasted_pull = 0.6
+        dead_weight += 1.5
+        wasted_pull = 0.8 * rs.arm_pwm_multiplier
     else:
-        wasted_pull = 0.4
+        wasted_pull = 0.5 * rs.arm_pwm_multiplier
     while target_weight > 0.1 and curr_weight_adjusted < round(target_weight * 0.95, 2) or\
           target_weight <= 0.1 and curr_weight_adjusted < round(target_weight * 0.8, 2):
         sleep_time = ac.retract_fill(target_weight - curr_weight_adjusted + wasted_pull)
@@ -149,12 +153,10 @@ def refill(syringe_weight, dead_weight):
 #     conc_weight = 96.5 - container_weight # weight of concentrate
     print(f"container weight before load: {conc_weight + container_weight}")
     conc_weight_unavailabe = 7
-    conc_percentage_available = 1
-    if conc_weight < ac.syringe_weight_full - syringe_weight:
-        conc_percentage_available = 1 - conc_weight_unavailabe / conc_weight
+    conc_weight_available = conc_weight + syringe_weight - conc_weight_unavailabe
     # bring container in contact with syringe tip
-    sleep_time_phase1_lift = lc.extend_phase1(conc_weight)
-    sleep_time_phase1_arm = ac.extend(syringe_weight=syringe_weight)
+    sleep_time_phase1_lift = lc.extend_phase1(conc_weight + syringe_weight)
+    sleep_time_phase1_arm = ac.extend(syringe_weight=syringe_weight + dead_weight)
     # depending on which arm reaches destination first, 
     if sleep_time_phase1_arm > sleep_time_phase1_lift:
         time.sleep(sleep_time_phase1_lift)
@@ -167,15 +169,20 @@ def refill(syringe_weight, dead_weight):
         time.sleep(sleep_time_phase1_lift - sleep_time_phase1_arm)
         lc.stop_lift()
     ac.enable_magnet()
-    sleep_time, refill_rate = ac.extend_refill(syringe_weight, conc_percentage_available)
+    sleep_time = ac.retract_fill(syringe_weight + dead_weight)
+    time.sleep(sleep_time)
+    ac.stop_arm()
+    lc.stop_lift()
+    time.sleep(1)
+    sleep_time, refill_rate = ac.extend_refill(conc_weight_available)
     lc.extend_phase2(refill_rate)
     time.sleep(sleep_time)
     ac.disable_magnet()
     lc.stop_lift()
     ac.retract()
     lc.retract()
-    time.sleep(6)
-    print(f"Syringe weight refilled: {conc_weight - cm.get_weight() + container_weight}")
+    time.sleep(7)
+    print(f"Syringe weight refilled: {conc_weight - cm.get_weight() + container_weight + syringe_weight}")
 
 def destroy():
     global bounce_durations

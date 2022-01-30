@@ -9,8 +9,8 @@ from datetime import datetime
 en_arm = 10
 in_values = {"arm": [9, 11], "e-magnet": [19, 26]}
 pwm_pin = None
-pre_engagement_duration = 1.56
-move_speed = 6.4
+pre_engagement_duration = 1.67
+move_speed = 6.3
 syringe_weight_full = 20.8
 
 def setup():
@@ -50,7 +50,7 @@ def on_press(key):
     elif (key == keyboard.Key.up):
         time.sleep(2)
         # to test positioning accuracy of the actuator. test with syringe_weight = 0 and 20.8 (which is a volume of 20)
-        sleep_time = extend(syringe_weight=20.8)
+        sleep_time = extend(syringe_weight=20.95)
         time.sleep(sleep_time)
         stop_arm()
     elif (key == keyboard.Key.left):
@@ -85,18 +85,30 @@ def extend_test(pwm):
     GPIO.output(in_values['arm'][1], GPIO.HIGH)
     
 def extend(syringe_weight = None, pwm = 100):
+    duration = None
     pwm_pin.ChangeDutyCycle(pwm * rs.arm_pwm_multiplier)
     if syringe_weight is not None:
-#         duration = (duration_limits[1] - duration_limits[0]) * syringe_weight / syringe_weight_full + duration_limits[0]
         duration = pre_engagement_duration + syringe_weight / move_speed
     GPIO.output(in_values['arm'][0], GPIO.LOW)
     GPIO.output(in_values['arm'][1], GPIO.HIGH)
     return duration
 
-def extend_refill(syringe_weight, conc_percentage_available):
+def extend_connected(weight):
     pwm = 100
-    refill_rate = 6.1
-    sleep_time = (syringe_weight_full - syringe_weight) * conc_percentage_available / refill_rate
+    refill_rate = 6.0
+    sleep_time = weight / refill_rate
+    pwm_pin.ChangeDutyCycle(pwm)
+    GPIO.output(in_values['arm'][0], GPIO.LOW)
+    GPIO.output(in_values['arm'][1], GPIO.HIGH)
+    return sleep_time
+
+def extend_refill(conc_weight_available):
+    pwm = 100
+    refill_rate = 6.0
+    if conc_weight_available < syringe_weight_full:
+        sleep_time = conc_weight_available / refill_rate
+    else:
+        sleep_time = syringe_weight_full / refill_rate
     pwm_pin.ChangeDutyCycle(pwm)
     GPIO.output(in_values['arm'][0], GPIO.LOW)
     GPIO.output(in_values['arm'][1], GPIO.HIGH)

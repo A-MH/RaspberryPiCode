@@ -2,7 +2,7 @@ from PIL import ImageDraw
 import pickle
 import RobotSpecific as rs
 
-calibrate_mode = 'auto'
+calibrate_mode = 'off'
 power_pixel = [20, 150]
 
 digits_array = [
