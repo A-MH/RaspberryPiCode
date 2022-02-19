@@ -2,6 +2,7 @@ import math
 import RPi.GPIO as GPIO
 import time
 from datetime import datetime
+import asyncio
 
 en = 13
 in_values = [6, 5]
@@ -20,12 +21,7 @@ def setup():
     GPIO.setup(in_values[1], GPIO.OUT)
     GPIO.output(in_values[1], GPIO.LOW)
 
-def extend_test():
-    GPIO.output(in_values[1], GPIO.HIGH)
-    GPIO.output(in_values[0], GPIO.LOW)
-    return sleep_time
-
-def extend_phase1(conc_weight):
+async def extend_phase1(conc_weight):
     conc_weight_full = 90
     gram_per_second = 25
     pre_engagement_duration = 2
@@ -33,14 +29,18 @@ def extend_phase1(conc_weight):
     pwm_pin.ChangeDutyCycle(100)
     GPIO.output(in_values[1], GPIO.HIGH)
     GPIO.output(in_values[0], GPIO.LOW)
-    return sleep_time
+    await asyncio.sleep(sleep_time)
+    GPIO.output(in_values[1], GPIO.LOW)
     
-def extend_phase2(refill_rate):
-    pwm_constant = 2.5
-    pwm = pwm_constant * refill_rate 
+async def extend_phase2(weight):
+    gram_per_second = 17
+    sleep_duration = weight / gram_per_second
+    pwm = 12
     pwm_pin.ChangeDutyCycle(pwm)
     GPIO.output(in_values[1], GPIO.HIGH)
     GPIO.output(in_values[0], GPIO.LOW)
+    await asyncio.sleep(sleep_duration)
+    GPIO.output(in_values[1], GPIO.LOW)
 
 def retract(pwm = 100):
     pwm_pin.ChangeDutyCycle(pwm)

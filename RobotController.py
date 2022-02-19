@@ -1,3 +1,4 @@
+import asyncio
 from enum import Enum
 import numpy as np
 import LFUController as lfu
@@ -45,7 +46,7 @@ def format_commands(command_str):
         else:
            parameter += char
 
-def run_commands():
+async def run_commands():
 #     ac.prepare_syringe()
 #     time.sleep(5)
     global bounce_durations
@@ -55,35 +56,28 @@ def run_commands():
     bounce_durations = []
     while True:
         # commands_str = nm.get_commands()
-        commands_str = "loadf 0.05 21 0,loadf 5 19.3 0,loadf 5 19.3 0,"
-#         commands_str = "refill 0 0,"
+#         commands_str = "loadf 5 20.65,loadf 0.05 19.3,loadf 0.05 19.3,loadf 0.05 19.3,loadf 0.05 19.3,loadf 0.05 19.3,"
+        commands_str = "refill 15 15.47,"
         bounce_durations.append((datetime.now() - old_time).seconds)
 #         print(f"time taken: {(datetime.now() - old_time).seconds}")
         old_time = datetime.now()
         time.sleep(1)
         format_commands(commands_str)
-        dead_weight = None
         print(f"commands: {commands}")
         for i in range(len(commands)):
             command_type = commands[i][0]
             if command_type == 'loadf':
-                if i == 0:
-                    syringe_weight = commands[i][1][1]
-                    dead_weight = commands[i][1][2]
-                print(f"syringe weight actual: {syringe_weight}")
-                actual_loaded, dead_weight = load_f(commands[i][1][0], syringe_weight, dead_weight)
-                syringe_weight -= actual_loaded
-                print(syringe_weight)
-#                 syringe_weight_actual = commands[i][1][1] - commands[i][1][0]
-#                 dead_weight = 0.8
-#                 nm.send_result(f"{syringe_weight_actual} {dead_weight}")
-#                 print(f"sent: {syringe_weight_actual} {dead_weight}")
+                actual_loaded, positional_weight = await load_f(commands[i][1][0], commands[i][1][1])
+                # the following conditional is only a helper for testing and should be removed for production stage
+                if i < len(commands) - 1:
+                    commands[i+1][1][1] = positional_weight
+#                 return actual_loaded, positional_weight
             elif command_type == 'loadvg' or command_type == 'loadpg':
                 result = load_b(command_type, commands[i][1])
                 nm.send_result(result);
             elif command_type == 'refill':
                 print("command is refill")
-                result = refill(commands[i][1][0], commands[i][1][1])
+                syringe_weight, positional_weight = await refill(commands[i][1][0], commands[i][1][1])
         break
             
 def load_b(command_type, amount):
@@ -111,26 +105,21 @@ def load_b(command_type, amount):
     print(f"{amount_added}g added. target: {amount}g")
     return "ok"
     
-def load_f(target_weight, syringe_weight, dead_weight):
+async def load_f(target_weight, positional_weight):
     orig_weight = cm.get_weight()
     curr_weight_adjusted = 0
     ac.enable_magnet()
-    sleep_time_extend = ac.extend(syringe_weight=syringe_weight + dead_weight)
-    time.sleep(sleep_time_extend)
-    ac.stop_arm()
+    wasted_push = 0
+    friction_break_weight = 0
     if target_weight <= 0.1:
-        sleep_time = ac.extend_connected(1)
-        time.sleep(sleep_time)
-        ac.stop_arm()
-        dead_weight += 1.5
-        wasted_pull = 0.8 * rs.arm_pwm_multiplier
-    else:
-        wasted_pull = 0.5 * rs.arm_pwm_multiplier
+        if target_weight < 0.05:
+            target_weight = 0.05
+        wasted_push = 0.15
+        friction_break_weight = 0.6
+    await ac.extend(weight=positional_weight + friction_break_weight, homing_pwm = 100)
     while target_weight > 0.1 and curr_weight_adjusted < round(target_weight * 0.95, 2) or\
           target_weight <= 0.1 and curr_weight_adjusted < round(target_weight * 0.8, 2):
-        sleep_time = ac.retract_fill(target_weight - curr_weight_adjusted + wasted_pull)
-        time.sleep(sleep_time)
-        ac.stop_arm()
+        positional_weight = await ac.retract_fill(target_weight - curr_weight_adjusted + wasted_push)
         wasted_pull = 0
         if target_weight - curr_weight_adjusted <= 0.1:
             if target_weight - curr_weight_adjusted <= 0.03:
@@ -142,47 +131,41 @@ def load_f(target_weight, syringe_weight, dead_weight):
         curr_weight_adjusted = round(current_weight - orig_weight, 2)
         print(f"current weight: {curr_weight_adjusted}")
     ac.disable_magnet()
-    ac.retract(100)
+    await ac.retract()
     print(f'target weight reached: {curr_weight_adjusted}g')
-    time.sleep(sleep_time_extend)
-    return (curr_weight_adjusted, dead_weight)
+    print(f'positional weight: {positional_weight}g')
+    return curr_weight_adjusted, positional_weight
     
-def refill(syringe_weight, dead_weight):
+async def refill(syringe_weight, positional_weight):
     container_weight = 23.32 # weight of empty container
     conc_weight = cm.get_weight() - container_weight # weight of concentrate
 #     conc_weight = 96.5 - container_weight # weight of concentrate
     print(f"container weight before load: {conc_weight + container_weight}")
-    conc_weight_unavailabe = 7
+    conc_weight_unavailabe = 3
     conc_weight_available = conc_weight + syringe_weight - conc_weight_unavailabe
     # bring container in contact with syringe tip
-    sleep_time_phase1_lift = lc.extend_phase1(conc_weight + syringe_weight)
-    sleep_time_phase1_arm = ac.extend(syringe_weight=syringe_weight + dead_weight)
-    # depending on which arm reaches destination first, 
-    if sleep_time_phase1_arm > sleep_time_phase1_lift:
-        time.sleep(sleep_time_phase1_lift)
-        lc.stop_lift()
-        time.sleep(sleep_time_phase1_arm - sleep_time_phase1_lift)
-        ac.stop_arm()
-    else:
-        time.sleep(sleep_time_phase1_arm)
-        ac.stop_arm()
-        time.sleep(sleep_time_phase1_lift - sleep_time_phase1_arm)
-        lc.stop_lift()
+    task1 = asyncio.create_task(lc.extend_phase1(conc_weight + syringe_weight))
+    task2 = asyncio.create_task(ac.extend(positional_weight))
+    await task1
+    await task2
     ac.enable_magnet()
-    sleep_time = ac.retract_fill(syringe_weight + dead_weight)
-    time.sleep(sleep_time)
-    ac.stop_arm()
-    lc.stop_lift()
-    time.sleep(1)
-    sleep_time, refill_rate = ac.extend_refill(conc_weight_available)
-    lc.extend_phase2(refill_rate)
-    time.sleep(sleep_time)
-    ac.disable_magnet()
-    lc.stop_lift()
-    ac.retract()
+    # then empty the remaning content of syringe
+    await ac.retract_fill(positional_weight)
+    # The following sleep might not be neccessary
+    time.sleep(0.1)
+    task1 = asyncio.create_task(lc.extend_phase2(conc_weight_available))
+    task2 = asyncio.create_task(ac.extend_refill(conc_weight_available))
+    await task1
+    positional_weight = await task2
     lc.retract()
-    time.sleep(7)
-    print(f"Syringe weight refilled: {conc_weight - cm.get_weight() + container_weight + syringe_weight}")
+    ac.disable_magnet()
+    await ac.retract()
+    time.sleep(3)
+    lc.stop_lift()
+    actual_weight_syringe = conc_weight - cm.get_weight() + container_weight + syringe_weight
+    print(f"Syringe weight refilled: {actual_weight_syringe}")
+    print(f"Positional Weight: {positional_weight}")
+    return actual_weight_syringe, positional_weight
 
 def destroy():
     global bounce_durations
@@ -202,5 +185,5 @@ def destroy():
     ac.destroy()
 
 setup()
-run_commands()
+asyncio.run(run_commands())
 

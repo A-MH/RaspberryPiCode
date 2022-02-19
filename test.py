@@ -15,10 +15,10 @@ i2c = I2C(3)
 # Create the ADC object using the I2C bus
 ads = ADS.ADS1015(i2c, data_rate = 3300)
 
-# Create single-ended input on channel 0
-chan0 = AnalogIn(ads, ADS.P0)
+# Create single-ended input on channel 2
+chan = AnalogIn(ads, ADS.P2)
 
 if __name__ == '__main__':     # Program entrance
     while True:
-        print(format(chan0.value/1000, ".2f"))
+        print(format(round(chan.value/1000, 1), ".2f"))
         time.sleep(0.5)
