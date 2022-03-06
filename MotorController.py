@@ -65,15 +65,14 @@ def on_press(key):
 
 def start_travel(travel_direction, travel_distance):
     global end_offsets
-    if (travel_direction == 'fo'):
-        go_to_dest('fo', 'left', 'right', 0, 1, travel_distance, end_offsets[0], end_offsets[1])
-    elif(travel_direction == 'ba'):
-        go_to_dest('ba', 'right', 'left', 3, 2, travel_distance, end_offsets[3], end_offsets[2])
-    elif(travel_direction == 'le'):
-        go_to_dest('le', 'back', 'front', 2, 0, travel_distance, end_offsets[2], end_offsets[0])
-    elif(travel_direction == 'ri'):
-        go_to_dest('ri', 'front', 'back', 1, 3, travel_distance, end_offsets[1], end_offsets[3])
-    time.sleep(2)
+    if (travel_direction == 'forward'):
+        go_to_dest(travel_direction, 'left', 'right', 0, 1, travel_distance, end_offsets[0], end_offsets[1])
+    elif(travel_direction == 'back'):
+        go_to_dest(travel_direction, 'right', 'left', 3, 2, travel_distance, end_offsets[3], end_offsets[2])
+    elif(travel_direction == 'left'):
+        go_to_dest(travel_direction, 'back', 'front', 2, 0, travel_distance, end_offsets[2], end_offsets[0])
+    elif(travel_direction == 'right'):
+        go_to_dest(travel_direction, 'front', 'back', 1, 3, travel_distance, end_offsets[1], end_offsets[3])
     
 def on_release(key):
     global ctrl
@@ -160,8 +159,8 @@ def go_to_dest(travel_direction, rel_left, rel_right, sensor_left, sensor_right,
             check_for_rise = False
             check_for_junction = False
             distance_travelled += 1
-            print(f'junction {distance_travelled} reached {(datetime.now() - old_time).seconds}.{(datetime.now() - old_time).microseconds}' + \
-                  f'\t{deviations.shape[0] - sen_reading_offset - 1}')
+#             print(f'junction {distance_travelled} reached {(datetime.now() - old_time).seconds}.{(datetime.now() - old_time).microseconds}' + \
+#                   f'\t{deviations.shape[0] - sen_reading_offset - 1}')
             old_time = datetime.now()
         if distance_travelled == travel_distance:
             if not destination_reached_left and deviations[offset_left, sensor_left] > deviations[-1, sensor_left]:
@@ -207,7 +206,7 @@ def go_to_dest(travel_direction, rel_left, rel_right, sensor_left, sensor_right,
                 pwm_right = homing_pwm
                 pwm_left = homing_pwm
             dec_counter_home += 1
-        if travel_direction == 'fo' or travel_direction == 'ri':
+        if travel_direction == 'forward' or travel_direction == 'right':
             pwm_pins[rel_left].ChangeDutyCycle(pwm_left * pwm_multipliers[rel_left])
             pwm_pins[rel_right].ChangeDutyCycle(pwm_right * pwm_multipliers[rel_right])
         else:

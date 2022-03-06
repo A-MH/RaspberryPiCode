@@ -56,12 +56,13 @@ async def run_commands():
     bounce_durations = []
     while True:
         # commands_str = nm.get_commands()
-#         commands_str = "loadf 5 20.65,loadf 0.05 19.3,loadf 0.05 19.3,loadf 0.05 19.3,loadf 0.05 19.3,loadf 0.05 19.3,"
-        commands_str = "refill 15 15.47,"
+#         commands_str = "loadf 5 20.67,loadf 0.05 19.3,loadf 0.05 19.3,loadf 0.05 19.3,loadf 0.05 19.3,loadf 0.05 19.3,"
+#         commands_str = "refill 0 0,"
+        commands_str = "forward 4,right 4,left 4,back 4,"
         bounce_durations.append((datetime.now() - old_time).seconds)
 #         print(f"time taken: {(datetime.now() - old_time).seconds}")
         old_time = datetime.now()
-        time.sleep(1)
+        time.sleep(0.2)
         format_commands(commands_str)
         print(f"commands: {commands}")
         for i in range(len(commands)):
@@ -78,6 +79,8 @@ async def run_commands():
             elif command_type == 'refill':
                 print("command is refill")
                 syringe_weight, positional_weight = await refill(commands[i][1][0], commands[i][1][1])
+            elif command_type == "forward" or command_type == "back" or command_type == "left" or command_type == "right":
+                mc.start_travel(command_type, commands[i][1])
         break
             
 def load_b(command_type, amount):
